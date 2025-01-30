@@ -6,6 +6,8 @@ import shutil
 import torch
 import torchvision
 import torchvision.transforms as transforms
+from torchvision.datasets import ImageFolder
+from torch.utils.data import DataLoader
 
 def splitData(pTrain, pTest):
     if pTrain+ pTest > 1:
@@ -23,7 +25,7 @@ def splitData(pTrain, pTest):
     amountTrainImages = math.floor(amountImages * pTrain)
     amountTestImages = math.floor(amountImages * pTest)
 
-    print("spliting the dataset into: \n", amountTrainImages, " amount of train images \n", amountTestImages, "amount of test images\n", amountImages - amountTrainImages - amountTestImages, "amound of validation images")
+    print("spliting the dataset into: \n", amountTrainImages, " amount of train images \n", amountTestImages, "amount of test images\n", amountImages - amountTrainImages - amountTestImages, "amount of validation images")
 
     trainImages = []
     for elements in range (amountTrainImages):
@@ -52,17 +54,38 @@ def splitData(pTrain, pTest):
     if os.path.exists(datasetF):
         shutil.rmtree(datasetF)
 
-    os.makedirs(trainF)
-    os.makedirs(testF)
-    os.makedirs(validationF)
+    setTypes = ["train", "test", "validation"]
+    classes = ["Chamo", "Hawassa", "Koka", "Lan", "Tana", "Ziway"]
+
+    for setType in setTypes:
+        setTypeP = os.path.join(datasetF, setType)
+        os.makedirs(setTypeP)
+        for classType in classes:
+            os.makedirs(os.path.join(setTypeP, classType))
 
     for image in os.listdir(pathAllImages):
+        for classType in classes:
+            if classType in image:
+                imageType = classType
         if image in testImages:
-            shutil.copy(pathAllImages + "/" + image, testF)
+            shutil.copy(pathAllImages + "/" + image, testF + "/" + imageType)
         if image in trainImages:
-            shutil.copy(pathAllImages + "/" + image, trainF)
+            shutil.copy(pathAllImages + "/" + image, trainF + "/" +  imageType)
         if image in validationImages:
-            shutil.copy(pathAllImages + "/" + image, validationF)
+            shutil.copy(pathAllImages + "/" + image, validationF + "/" +  imageType)
+
+    transform = transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+    ])
+
+    trainSet = ImageFolder(root=trainF, transform=transform)
+    trainLoader = DataLoader(trainSet, batch_size=8, shuffle=True, num_workers=6)
+
+    # Load testing dataset
+    testSet = ImageFolder(root=testF, transform=transform)
+    testLoader = DataLoader(testSet, batch_size=4, shuffle=False, num_workers=6)
 
 def main():
     splitData(0.8, 0.1)
