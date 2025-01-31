@@ -6,10 +6,15 @@ import shutil
 import torch
 import torchvision
 import torchvision.transforms as transforms
+import torchvision.models as models
+import torch.nn as nn
 from torchvision.datasets import ImageFolder
 from torch.utils.data import DataLoader
 
-def splitData(pTrain, pTest):
+setTypes = ["train", "test", "validation"]
+classes = ["Chamo", "Hawassa", "Koka", "Lan", "Tana", "Ziway"]
+
+def trainCNN(pTrain, pTest):
     if pTrain+ pTest > 1:
         print("pTrain and pTest in the splitData function are larger than 1. Please adjust. \n !!Script terminated!!")
         return 0
@@ -27,19 +32,26 @@ def splitData(pTrain, pTest):
 
     print("spliting the dataset into: \n", amountTrainImages, " amount of train images \n", amountTestImages, "amount of test images\n", amountImages - amountTrainImages - amountTestImages, "amount of validation images")
 
-    trainImages = []
-    for elements in range (amountTrainImages):
-        randomChoice = random.choice(allImages)
-        trainImages.append(randomChoice)
-        allImages.remove(randomChoice)
+    allTestFolderFull = False
+    while allTestFolderFull == False:
+        trainImages = []
+        for elements in range (amountTrainImages):
+            randomChoice = random.choice(allImages)
+            trainImages.append(randomChoice)
+            allImages.remove(randomChoice)
 
-    testImages = []
-    for elements in range (amountTestImages):
-        randomChoice = random.choice(allImages)
-        testImages.append(randomChoice)
-        allImages.remove(randomChoice)
+        testImages = []
+        for elements in range (amountTestImages):
+            randomChoice = random.choice(allImages)
+            testImages.append(randomChoice)
+            allImages.remove(randomChoice)
 
-    validationImages = allImages
+        validationImages = allImages
+
+        if all(any(sub in s for s in testImages) for sub in classes):
+            allTestFolderFull = True
+        else:
+            print("first try splitting the images left one folder empty. Trying to split again.")
 
     # print(len(trainImages))
     # print(len(testImages))
@@ -54,8 +66,6 @@ def splitData(pTrain, pTest):
     if os.path.exists(datasetF):
         shutil.rmtree(datasetF)
 
-    setTypes = ["train", "test", "validation"]
-    classes = ["Chamo", "Hawassa", "Koka", "Lan", "Tana", "Ziway"]
 
     for setType in setTypes:
         setTypeP = os.path.join(datasetF, setType)
@@ -67,6 +77,7 @@ def splitData(pTrain, pTest):
         for classType in classes:
             if classType in image:
                 imageType = classType
+
         if image in testImages:
             shutil.copy(pathAllImages + "/" + image, testF + "/" + imageType)
         if image in trainImages:
@@ -87,8 +98,41 @@ def splitData(pTrain, pTest):
     testSet = ImageFolder(root=testF, transform=transform)
     testLoader = DataLoader(testSet, batch_size=4, shuffle=False, num_workers=6)
 
+
+    #Load preexisting model
+    vgg_conv = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1)
+    vgg_conv = nn.Sequential(*list(vgg_conv.features.children()))  # Delete all but the conv layers
+
+    for param in list(vgg_conv.parameters())[:-4]:  #All layers except the last 4 can't be trained
+        param.requires_grad = False
+
+    class CustomVGG(nn.Module):     #new classifier
+        def __init__(self, vgg_conv, num_classes=6):
+            super(CustomVGG, self).__init__()
+            self.vgg_conv = vgg_conv                    #Feature extractor
+            self.flatten = nn.Flatten()                 #Flatten
+            self.fc1 = nn.Linear(512 * 7 * 7, 1024)     #Fully connected layer
+            self.relu = nn.ReLU()                       #
+            self.dropout = nn.Dropout(0.5)              #Dropout to prevent overfitting
+            self.fc2 = nn.Linear(1024, num_classes)     #classifier
+            self.softmax = nn.Softmax(dim=1)            #probability for each class
+
+        def forward(self, x):                           #model flow
+            x = self.vgg_conv(x)
+            x = self.flatten(x)
+            x = self.fc1(x)
+            x = self.relu(x)
+            x = self.dropout(x)
+            x = self.fc2(x)
+            x = self.softmax(x)
+            return x
+
+    model = CustomVGG(vgg_conv, num_classes=6)          #create model
+
+    print(model)
+
 def main():
-    splitData(0.8, 0.1)
+    trainCNN(0.8, 0.1)
     
 
 if __name__ == '__main__':
