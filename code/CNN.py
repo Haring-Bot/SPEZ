@@ -15,7 +15,7 @@ from torch.utils.data import DataLoader
 setTypes = ["train", "test", "validation"]
 classes = ["Chamo", "Hawassa", "Koka", "Lan", "Tana", "Ziway"]
 
-def trainCNN(pTrain, pTest):
+def trainCNN(pTrain, pTest, device):
     if pTrain+ pTest > 1:
         print("pTrain and pTest in the splitData function are larger than 1. Please adjust. \n !!Script terminated!!")
         return 0
@@ -26,15 +26,15 @@ def trainCNN(pTrain, pTest):
     
     pathAllImages = "../data/images"
 
-    allImages = os.listdir(pathAllImages)
-    amountImages = len(allImages)
-    amountTrainImages = math.floor(amountImages * pTrain)
-    amountTestImages = math.floor(amountImages * pTest)
-
-    print("spliting the dataset into: \n", amountTrainImages, " amount of train images \n", amountTestImages, "amount of test images\n", amountImages - amountTrainImages - amountTestImages, "amount of validation images")
 
     allTestFolderFull = False
     while allTestFolderFull == False:
+        allImages = os.listdir(pathAllImages)
+        amountImages = len(allImages)
+        amountTrainImages = math.floor(amountImages * pTrain)
+        amountTestImages = math.floor(amountImages * pTest)
+
+        print("spliting the dataset into: \n", amountTrainImages, " amount of train images \n", amountTestImages, "amount of test images\n", amountImages - amountTrainImages - amountTestImages, "amount of validation images")
         trainImages = []
         for elements in range (amountTrainImages):
             randomChoice = random.choice(allImages)
@@ -92,12 +92,17 @@ def trainCNN(pTrain, pTest):
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
     ])
 
+    #Load training dataset
     trainSet = ImageFolder(root=trainF, transform=transform)
     trainLoader = DataLoader(trainSet, batch_size=8, shuffle=True, num_workers=6)
 
-    # Load testing dataset
+    #Load testing dataset
     testSet = ImageFolder(root=testF, transform=transform)
     testLoader = DataLoader(testSet, batch_size=4, shuffle=False, num_workers=6)
+
+    #Load validation dataset
+    validationSet = ImageFolder(root=validationF, transform=transform)
+    validationLoader = DataLoader(validationSet, batch_size=8, shuffle=False, num_workers=6)
 
 
     #Load preexisting model
@@ -130,8 +135,6 @@ def trainCNN(pTrain, pTest):
 
     model = CustomVGG(vgg_conv, num_classes=6)          #create model
 
-    #Make sure the model uses the GPU if available
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = model.to(device)  #Move the model to GPU or CPU
 
     #print(model)
@@ -156,15 +159,44 @@ def trainCNN(pTrain, pTest):
             optimizer.step()
 
             runningLoss += loss.item()
-            if i % 2000 == 1999:  # print every 2000 mini-batches
+            if i == 20:  # print every 2000 mini-batches
                 print('[%d, %5d] loss: %.3f' %
-                    (epoch + 1, i + 1, runningLoss / 2000))
+                    (epoch + 1, i + 1, runningLoss / 20))
                 runningLoss = 0.0
 
     print('Finished Training')
 
+    return model, validationLoader
+
+
+def evaluateCNN(model, validationLoader, device):
+    model.eval()
+
+    correctGuesses = 0
+    totalGuesses = 0
+
+    with torch.no_grad():
+        for data in validationLoader:
+            inputs, labels = data
+            inputs, labels = inputs.to(device), labels.to(device)  
+
+            outputs = model(inputs)
+            _, predicted = torch.max(outputs, 1)  #get predicted class (highest probability)
+            
+            totalGuesses += labels.size(0)
+            correctGuesses += (predicted == labels).sum().item()  # Count correct predictions
+
+    accuracy = 100 * correctGuesses/totalGuesses
+    print(f"The accuracy of the model is: {accuracy:.2f}%")
+
+
+
 def main():
-    trainCNN(0.8, 0.1)
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu') #Make sure the model uses the GPU if available
+    
+    model, validationLoader = trainCNN(0.8, 0.1, device)
+
+    evaluateCNN(model, validationLoader, device)
     
 
 if __name__ == '__main__':
