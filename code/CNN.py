@@ -8,6 +8,7 @@ import torchvision
 import torchvision.transforms as transforms
 import torchvision.models as models
 import torch.nn as nn
+import torch.optim as optim
 from torchvision.datasets import ImageFolder
 from torch.utils.data import DataLoader
 
@@ -106,7 +107,7 @@ def trainCNN(pTrain, pTest):
     for param in list(vgg_conv.parameters())[:-4]:  #All layers except the last 4 can't be trained
         param.requires_grad = False
 
-    class CustomVGG(nn.Module):     #new classifier
+    class CustomVGG(nn.Module):                         #new classifier
         def __init__(self, vgg_conv, num_classes=6):
             super(CustomVGG, self).__init__()
             self.vgg_conv = vgg_conv                    #Feature extractor
@@ -129,7 +130,38 @@ def trainCNN(pTrain, pTest):
 
     model = CustomVGG(vgg_conv, num_classes=6)          #create model
 
-    print(model)
+    #Make sure the model uses the GPU if available
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model = model.to(device)  #Move the model to GPU or CPU
+
+    #print(model)
+
+    lossFunc = nn.CrossEntropyLoss()
+    optimizer = optim.RMSprop(model.parameters(), lr=1e-4)
+
+    print("starting to train the model")
+
+    for epoch in range(70):  # loop over the dataset multiple times
+
+        runningLoss = 0.0
+        for i, data in enumerate(trainLoader, 0):
+            inputs, labels = data
+            inputs, labels = inputs.to(device), labels.to(device)  #Move inputs and labels to GPU or CPU
+
+            optimizer.zero_grad()
+
+            outputs = model(inputs)
+            loss = lossFunc(outputs, labels)
+            loss.backward()
+            optimizer.step()
+
+            runningLoss += loss.item()
+            if i % 2000 == 1999:  # print every 2000 mini-batches
+                print('[%d, %5d] loss: %.3f' %
+                    (epoch + 1, i + 1, runningLoss / 2000))
+                runningLoss = 0.0
+
+    print('Finished Training')
 
 def main():
     trainCNN(0.8, 0.1)
