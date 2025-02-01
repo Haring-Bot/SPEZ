@@ -2,6 +2,7 @@ import os
 import math
 import random
 import shutil
+import time
 
 import torch
 import torchvision
@@ -50,7 +51,8 @@ def trainCNN(pTrain, pTest, device):
         validationImages = allImages
 
         if all(any(sub in s for s in testImages) for sub in classes):
-            allTestFolderFull = True
+            if all(any(sub in s for s in validationImages) for sub in classes):
+                allTestFolderFull = True
         else:
             print("first try splitting the images left one folder empty. Trying to split again.")
 
@@ -160,8 +162,8 @@ def trainCNN(pTrain, pTest, device):
 
             runningLoss += loss.item()
             if i == 20:  # print every 2000 mini-batches
-                print('[%d, %5d] loss: %.3f' %
-                    (epoch + 1, i + 1, runningLoss / 20))
+                #print('[%d, %5d] loss: %.3f' %
+                    #(epoch + 1, i + 1, runningLoss / 20))
                 runningLoss = 0.0
 
     print('Finished Training')
@@ -188,15 +190,36 @@ def evaluateCNN(model, validationLoader, device):
 
     accuracy = 100 * correctGuesses/totalGuesses
     print(f"The accuracy of the model is: {accuracy:.2f}%")
+    return accuracy
 
 
 
 def main():
+    iterations = 10
+    
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu') #Make sure the model uses the GPU if available
     
-    model, validationLoader = trainCNN(0.8, 0.1, device)
+    accuracyList = []
+    totalAccuracy = 0
+    startTime = time.time()
 
-    evaluateCNN(model, validationLoader, device)
+    for i in range(iterations):
+
+        model, validationLoader = trainCNN(0.8, 0.1, device)
+
+        accuracy = evaluateCNN(model, validationLoader, device)
+        accuracyList.append(accuracy)
+        totalAccuracy += accuracy
+    
+    endTime = time.time()
+    duration = endTime - startTime
+    durationM, durationS = divmod(duration, 60)
+
+    totalAccuracy = totalAccuracy / iterations
+    print(accuracyList)
+    print(f"total accuracy is: {totalAccuracy:.2f}%")
+    print(f"it took {int(durationM)} minutes and {int(durationS)} seconds to complete the {iterations} iterations")
+    
     
 
 if __name__ == '__main__':
