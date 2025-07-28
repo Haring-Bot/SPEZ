@@ -6,17 +6,26 @@ import time
 
 import torch
 import torchvision
-import torchvision.transforms as transforms
 import torchvision.models as models
 import torch.nn as nn
 import torch.optim as optim
 from torchvision.datasets import ImageFolder
 from torch.utils.data import DataLoader
+from transformers import ViTImageProcessor
+from torchvision.transforms import (
+    CenterCrop,
+    Compose,
+    Normalize,
+    RandomHorizontalFlip,
+    RandomResizedCrop,
+    ToTensor,
+    Resize,
+)
 
 setTypes = ["train", "test", "validation"]
 classes = ["Chamo", "Hawassa", "Koka", "Lan", "Tana", "Ziway"]
 
-def loadDataset(pTrain, pTest, device):
+def splitDataset(pTrain, pTest):
     if pTrain+ pTest > 1:
         print("pTrain and pTest in the splitData function are larger than 1. Please adjust. \n !!Script terminated!!")
         return 0
@@ -88,26 +97,49 @@ def loadDataset(pTrain, pTest, device):
         if image in validationImages:
             shutil.copy(pathAllImages + "/" + image, validationF + "/" +  imageType)
 
-    transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+    return trainF, testF, validationF
+
+def train(trainF, testF, validationF):
+    modelName = "google/vit-large-patch16-224"
+    processor = ViTImageProcessor.from_pretrained(modelName)
+    processor
+
+    size = processor.size["height"]
+    mean, stdDev = processor.image_mean, processor.image_std
+    
+    trainTransform = torchvision.transforms.Compose([
+        torchvision.transforms.RandomResizedCrop(size), #does this even make sense since all imgs are te same size?
+        torchvision.transforms.RandomHorizontalFlip(),  #sense? All images have the same orientation
+        torchvision.transforms.Normalize(mean=mean, std=stdDev),
+        torchvision.transforms.ToTensor()
+    ])
+
+    testValTransform = torchvision.transforms.Compose([
+        torchvision.transforms.Resize(size), 
+        torchvision.transforms.CenterCrop(size),  #does this even make sense since all imgs are te same size?
+        torchvision.transforms.Normalize(mean=mean, std=stdDev),
+        torchvision.transforms.ToTensor()
     ])
 
     #Load training dataset
-    trainSet = ImageFolder(root=trainF, transform=transform)
+    trainSet = ImageFolder(root=trainF, transform=trainTransform)
     trainLoader = DataLoader(trainSet, batch_size=8, shuffle=True, num_workers=6)
 
     #Load testing dataset
-    testSet = ImageFolder(root=testF, transform=transform)
+    testSet = ImageFolder(root=testF, transform=testValTransform)
     testLoader = DataLoader(testSet, batch_size=4, shuffle=False, num_workers=6)
 
     #Load validation dataset
-    validationSet = ImageFolder(root=validationF, transform=transform)
+    validationSet = ImageFolder(root=validationF, transform=testValTransform)
     validationLoader = DataLoader(validationSet, batch_size=8, shuffle=False, num_workers=6)
 
-    return trainLoader, testLoader, validationLoader
+    print(trainSet.class_to_idx)
+    
+    
+
 
 if __name__ == '__main__':
     print("starting to load the dataset")
-    trainLoader, testLoader, validationLoader = loadDataset(0.8, 0.1, "gpu")
+    trainFolder, testFolder, validationFolder = splitDataset(0.8, 0.1)
+    train(trainFolder, testFolder, validationFolder)
+    
