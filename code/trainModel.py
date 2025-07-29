@@ -25,6 +25,11 @@ from torchvision.transforms import (
     ToTensor,
     Resize,
 )
+from sklearn.metrics import (
+    classification_report,
+    confusion_matrix,
+    ConfusionMatrixDisplay   
+)
 
 setTypes = ["train", "test", "validation"]
 classes = ["Chamo", "Hawassa", "Koka", "Lan", "Tana", "Ziway"]
@@ -192,6 +197,18 @@ def train(datasetF, device):
     outputs = trainer.predict(dataset["test"])
     print(outputs.metrics)
 
+    target_names = id2label.values()
+
+    y_true = outputs.label_ids
+    y_pred = outputs.predictions.argmax(1)
+
+    labels = train_ds.features["label"].names
+    cm = confusion_matrix(y_true, y_pred)
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=labels)
+    disp.plot(xticks_rotation=45)
+
+    print(classification_report(y_true, y_pred, target_names=target_names))
+
 if __name__ == '__main__':
     print("starting to split the dataset")
     datasetFolder = splitDataset(0.8, 0.1)
@@ -204,4 +221,6 @@ if __name__ == '__main__':
         device = torch.device("cpu")
 
     train(datasetFolder, device)
+
+    print("code finished")
 
