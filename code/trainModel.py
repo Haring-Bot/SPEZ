@@ -165,7 +165,7 @@ def train(datasetF, device):
     train_args = TrainingArguments(
         output_dir="output-models",
         per_device_train_batch_size=4,
-        evaluation_strategy="steps",
+        eval_strategy="steps",
         num_train_epochs=2,
         fp16=False,
         save_steps=10,
