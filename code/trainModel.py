@@ -4,6 +4,7 @@ import random
 import shutil
 import time
 
+import numpy as np
 import torch
 import torchvision
 import torchvision.models as models
@@ -12,6 +13,9 @@ import torch.optim as optim
 from torchvision.datasets import ImageFolder
 from torch.utils.data import DataLoader
 from transformers import ViTImageProcessor
+from transformers import ViTForImageClassification
+from transformers import TrainingArguments, Trainer
+from datasets import load_dataset
 from torchvision.transforms import (
     CenterCrop,
     Compose,
@@ -97,49 +101,107 @@ def splitDataset(pTrain, pTest):
         if image in validationImages:
             shutil.copy(pathAllImages + "/" + image, validationF + "/" +  imageType)
 
-    return trainF, testF, validationF
+    return datasetF
 
-def train(trainF, testF, validationF):
+def train(datasetF, device):
     modelName = "google/vit-large-patch16-224"
+    
+
+    dataset = load_dataset("imagefolder", data_dir = datasetF)
+
     processor = ViTImageProcessor.from_pretrained(modelName)
-    processor
-
     size = processor.size["height"]
-    mean, stdDev = processor.image_mean, processor.image_std
+    mean = processor.image_mean
+    std = processor.image_std
     
-    trainTransform = torchvision.transforms.Compose([
-        torchvision.transforms.RandomResizedCrop(size), #does this even make sense since all imgs are te same size?
-        torchvision.transforms.RandomHorizontalFlip(),  #sense? All images have the same orientation
-        torchvision.transforms.Normalize(mean=mean, std=stdDev),
-        torchvision.transforms.ToTensor()
+    trainTransforms = Compose([
+        RandomResizedCrop(size),
+        RandomHorizontalFlip(),
+        ToTensor(),
+        Normalize(mean=mean, std=std),
     ])
 
-    testValTransform = torchvision.transforms.Compose([
-        torchvision.transforms.Resize(size), 
-        torchvision.transforms.CenterCrop(size),  #does this even make sense since all imgs are te same size?
-        torchvision.transforms.Normalize(mean=mean, std=stdDev),
-        torchvision.transforms.ToTensor()
+    valTransforms = Compose([
+        Resize(size),
+        CenterCrop(size),
+        ToTensor(),
+        Normalize(mean=mean, std=std),
     ])
-
-    #Load training dataset
-    trainSet = ImageFolder(root=trainF, transform=trainTransform)
-    trainLoader = DataLoader(trainSet, batch_size=8, shuffle=True, num_workers=6)
-
-    #Load testing dataset
-    testSet = ImageFolder(root=testF, transform=testValTransform)
-    testLoader = DataLoader(testSet, batch_size=4, shuffle=False, num_workers=6)
-
-    #Load validation dataset
-    validationSet = ImageFolder(root=validationF, transform=testValTransform)
-    validationLoader = DataLoader(validationSet, batch_size=8, shuffle=False, num_workers=6)
-
-    print(trainSet.class_to_idx)
     
-    
+    def applyTrainTransforms(examples):
+        examples["pixel_values"] = [trainTransforms(image.convert("RGB")) for image in examples["image"]]
+        return examples
 
+    def applyValTransforms(examples):
+        examples["pixel_values"] = [valTransforms(image.convert("RGB")) for image in examples["image"]]
+        return examples    
+    
+    id2label = {id: label for id, label in enumerate(dataset["train"].features["label"].names)}
+    label2id = {label: id for id, label in id2label.items()}
+
+    dataset["train"].set_transform(applyTrainTransforms)
+    dataset["test"].set_transform(applyValTransforms)
+    dataset["validation"].set_transform(applyValTransforms)
+
+    def collate_fn(batch):
+        pixel_values = torch.stack([example["pixel_values"] for example in batch])
+        labels = torch.tensor([example["label"] for example in batch])
+        return{"pixel_values": pixel_values, "labels": labels}
+
+    labels  = dataset['train'].features['label'].names
+    print(labels)
+
+
+    model = ViTForImageClassification.from_pretrained(
+        modelName, 
+        num_labels = len(labels),
+        id2label=id2label, 
+        label2id=label2id, 
+        ignore_mismatched_sizes=True
+    )
+
+    model.to(device)
+
+    train_args = TrainingArguments(
+        output_dir="output-models",
+        per_device_train_batch_size=4,
+        evaluation_strategy="steps",
+        num_train_epochs=2,
+        fp16=False,
+        save_steps=10,
+        eval_steps=10,
+        logging_steps=10,
+        learning_rate=2e-4,
+        save_total_limit=2,
+        remove_unused_columns=False,
+        push_to_hub=False,
+        report_to='tensorboard',
+        load_best_model_at_end=True,
+    )
+
+    trainer = Trainer(
+        model,
+        train_args,
+        train_dataset=dataset["train"],
+        eval_dataset=dataset["validation"],
+        data_collator=collate_fn,
+        tokenizer=processor,
+    )
+    trainer.train()
+
+    outputs = trainer.predict(dataset["test"])
+    print(outputs.metrics)
 
 if __name__ == '__main__':
-    print("starting to load the dataset")
-    trainFolder, testFolder, validationFolder = splitDataset(0.8, 0.1)
-    train(trainFolder, testFolder, validationFolder)
-    
+    print("starting to split the dataset")
+    datasetFolder = splitDataset(0.8, 0.1)
+    print("starting to train the model")
+    if torch.cuda.is_available():
+        print("gpu found. Using cuda.")
+        device = torch.device("cuda")
+    else:
+        print("No gpu found. Using cpu instead.")
+        device = torch.device("cpu")
+
+    train(datasetFolder, device)
+
