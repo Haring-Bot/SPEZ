@@ -202,7 +202,7 @@ def train(datasetF, device):
     y_true = outputs.label_ids
     y_pred = outputs.predictions.argmax(1)
 
-    labels = train_ds.features["label"].names
+    labels = dataset["train"].features["label"].names
     cm = confusion_matrix(y_true, y_pred)
     disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=labels)
     disp.plot(xticks_rotation=45)
