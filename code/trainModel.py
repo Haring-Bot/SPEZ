@@ -109,7 +109,8 @@ def splitDataset(pTrain, pTest):
     return datasetF
 
 def train(datasetF, device):
-    modelName = "google/vit-large-patch16-224"
+    #modelName = "google/vit-large-patch16-224"
+    modelName = "google/vit-base-patch16-224"
     
 
     dataset = load_dataset("imagefolder", data_dir = datasetF)
@@ -170,8 +171,8 @@ def train(datasetF, device):
     train_args = TrainingArguments(
         output_dir="output-models",
         per_device_train_batch_size=4,
-        eval_strategy="steps",
-        num_train_epochs=2,
+        eval_strategy="epoch",
+        num_train_epochs=15,
         fp16=False,
         save_steps=10,
         eval_steps=10,
