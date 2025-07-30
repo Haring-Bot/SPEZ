@@ -10,6 +10,8 @@ import torchvision
 import torchvision.models as models
 import torch.nn as nn
 import torch.optim as optim
+import matplotlib as plt
+import datetime
 from torchvision.datasets import ImageFolder
 from torch.utils.data import DataLoader
 from transformers import ViTImageProcessor
@@ -208,6 +210,10 @@ def train(datasetF, device):
     cm = confusion_matrix(y_true, y_pred)
     disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=labels)
     disp.plot(xticks_rotation=45)
+
+    timestamp = datetime.now().strftime("%y%m%d%H%M")
+
+    plt.savefig(f"confusion_matrix_{timestamp}.png", dpi = 300, bbox_inches="tight")
 
     print(classification_report(y_true, y_pred, target_names=target_names))
 
