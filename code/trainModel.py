@@ -174,6 +174,7 @@ def train(datasetF, device):
         eval_strategy="epoch",
         num_train_epochs=15,
         fp16=False,
+        save_strategy="epoch",
         save_steps=10,
         eval_steps=10,
         logging_steps=10,
