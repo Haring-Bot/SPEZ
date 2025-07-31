@@ -10,8 +10,8 @@ import torchvision
 import torchvision.models as models
 import torch.nn as nn
 import torch.optim as optim
-import matplotlib as plt
-import datetime
+import matplotlib.pyplot as plt
+from datetime import datetime
 from torchvision.datasets import ImageFolder
 from torch.utils.data import DataLoader
 from transformers import ViTImageProcessor
