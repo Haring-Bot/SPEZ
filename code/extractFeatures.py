@@ -24,6 +24,47 @@ preprocess = transforms.Compose([
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),  # ImageNet stds and mean
 ])
 
+def extractAttention(model, imageTensor):
+    attentionScores = []
+
+    #Save original forward method
+    attentionModule = model.blocks[-1].attn
+    originalForward = attentionModule.forward
+
+    def forward_hooked(x):          #1to1 rebuild of forward but with attention saved
+        qkv = attentionModule.qkv(x)  #shape (B, N, 3*C)
+        B, N, C3 = qkv.shape
+        C = C3 // 3
+
+        num_heads = 12  
+        head_dim = C // num_heads
+
+        #reshape qkv to separate heads
+        qkv = qkv.reshape(B, N, 3, num_heads, head_dim).permute(2, 0, 3, 1, 4)
+
+        q, k, v = qkv[0], qkv[1], qkv[2]
+
+        attn = (q @ k.transpose(-2, -1)) * (head_dim ** -0.5)
+        attn = attn.softmax(dim=-1)
+
+        attentionScores.append(attn.detach().cpu())
+
+        out = (attn @ v).transpose(2, 3).reshape(B, N, C)
+        out = attentionModule.proj(out)
+        out = attentionModule.proj_drop(out)
+
+        return out
+
+    #repatch with original forward
+    attentionModule.forward = forward_hooked
+
+    with torch.no_grad():
+        _ = model(imageTensor)
+
+    attentionModule.forward = originalForward
+
+    return attentionScores[0] if attentionScores else None
+
 def main(folderPath = "../data/dataset/train"):
     print("start feature extraction")
 
@@ -41,6 +82,7 @@ def main(folderPath = "../data/dataset/train"):
     featureSet = []
     labelSet = []
     labelMap = {}
+    attentionMaps = {}
 
     classFolders = sorted([d for d in os.listdir(folderPath)
                            if os.path.isdir(os.path.join(folderPath, d))])
@@ -55,14 +97,24 @@ def main(folderPath = "../data/dataset/train"):
         for imageFile in imageFiles:
             imagePath = os.path.join(classFolderPath, imageFile)
             imageTensor = preprocessImage(imagePath).to(device)
-            features = extractFeatures(imageTensor, model)
 
-            featureSet.append(features)
+            with torch.no_grad():
+                features = model(imageTensor)
+                attention = extractAttention(model, imageTensor)
+
+            clsAttention = attention[0, :, 0, 1:]
+
+            featureSet.append(features.squeeze(0).cpu().numpy())
             labelSet.append(labelIndex)
+            #print(clsAttention)
+            attentionMaps[imageFile] = clsAttention.cpu().numpy()
 
     print("Finished extracting features.")
-    print(labelMap)
-    return np.array(featureSet), np.array(labelSet), labelMap
+    
+    # attention = model.get_last_selfattention(imageTensor)
+    # clsAttention = attention[0, :, 0, 1:]
+
+    return np.array(featureSet), np.array(labelSet), labelMap, attentionMaps
 
 if __name__ == "__main__":
     main()

@@ -23,6 +23,7 @@ def main(featuresTrain, labelsTrain, featuresTest, labelsTest):
     accuracy = accuracy_score(labelsTest, pred)
 
     print(f"The SVM achieves an accuracy of {accuracy*100} %")
+    print(pred)
 
 
 
