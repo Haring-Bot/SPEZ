@@ -4,6 +4,7 @@ import torch
 import matplotlib.pyplot as plt
 
 def combineAttentionWeight(weights, features, labels, attention, tokens):
+    relevancyMaps = {}
     for n in range(len(features)):
         #print(n)
         probabilities = []
@@ -31,10 +32,14 @@ def combineAttentionWeight(weights, features, labels, attention, tokens):
         uRelevancyMap -= uRelevancyMap.min()
         uRelevancyMap /= uRelevancyMap.max()
 
-        plt.imshow(uRelevancyMap, cmap='jet')
-        plt.title(imageNames[n])
-        plt.axis('off')
-        plt.show()
+        # plt.imshow(uRelevancyMap, cmap='jet')
+        # plt.title(imageNames[n])
+        # plt.axis('off')
+        # plt.show()
+        # print(f"relevancyMap shape:{uRelevancyMap.shape}")
+        # print(f"relevancyMap length:{len(uRelevancyMap)}")
+        relevancyMaps[imageNames[n]] = uRelevancyMap
+    return relevancyMaps
 
 def main():
     print("starting relevancy calculation")

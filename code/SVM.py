@@ -28,6 +28,7 @@ def main(featuresTrain, labelsTrain, featuresTest, labelsTest):
 
     for i in range(model.coef_.shape[0]):
         weights = model.coef_[i]
+        #print(f"weights have a length of{len(weights)}")
         weightDict[i] = weights
         
 

@@ -22,8 +22,14 @@ def main():
     
     SVMmodel, weights = SVM.main(trainFeatures, trainLabels, testFeatures, testLabels)
 
-    relevancy.combineAttentionWeight(weights, validationFeatures, validationLabels, validationAttention, tokensValidation)
+    relevancyMap = relevancy.combineAttentionWeight(weights, validationFeatures, validationLabels, validationAttention, tokensValidation)
 
+    # print(f"type validationAttention{type(validationAttention)}")
+    # print(f"type relevancyMap{type(relevancyMap)}")
+
+    # print(list(validationAttention.keys()))
+    # print(list(relevancyMap.keys()))
+    
     visualize.visualizeAttentionMap(validationAttention, "../data/images")
 
 

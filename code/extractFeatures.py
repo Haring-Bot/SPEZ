@@ -109,6 +109,10 @@ def main(folderPath = "../data/dataset/train"):
 
             clsAttention = attention[0, :, 0, 1:]
 
+            # print(f"length features{len(features)}")
+            # print(features.shape)
+            # print(f"length attention{len(clsAttention)}")
+            # print(clsAttention.shape)
             featureSet.append(features.squeeze(0).cpu().numpy())
             labelSet.append(labelIndex)
             featuresToImages[len(featureSet)] = imageFile
