@@ -13,7 +13,7 @@ def boxCoordinates(i, xLim, yLim, rows, cols):
     offsetY = yLim / rows
 
     goalX = i % cols * offsetX
-    goalY = (i // cols) * offsetY
+    goalY = yLim - ((i // cols) * offsetY)
 
     return goalX, goalY
 
@@ -21,9 +21,19 @@ def visualizeAttentionMap(attentionMapDict, pathImages):
     xMax = 1169
     yMax = 827
     
-    def addImage(ax, img, x, y, scale = 1.0):
+    def addImage(ax, img, x, y, scale = 1.0, title = "", titleOffset = 50):
         imageBox = OffsetImage(img, zoom = scale)
         ab = AnnotationBbox(imageBox, (x, y), frameon=False)
+        plt.text(
+            x = x, y = y + titleOffset,
+            ha = "center",
+            va = "center",
+            s = title,
+            color = "black",
+            fontsize = scale * 20,
+            backgroundcolor = "white",
+            weight = "bold"
+        )
         ax.add_artist(ab)
 
     def showImage(image, name = "test", doPrint = False):
@@ -101,12 +111,14 @@ def visualizeAttentionMap(attentionMapDict, pathImages):
             backgroundcolor = "white",
             weight = "bold"
         )
-        addImage(ax, fishImage,200 , yMax/2 - 100, scale=2.5)
+        addImage(ax, fishImage,200 , yMax/2 - 100, 2.5)
 
         for i in range(len(attentionImages)):
-            x, y = boxCoordinates(i, 700, 870, 3, 4)
+            x, y = boxCoordinates(i, 700, 830, 3, 4)
             #print(f"x: {x+600}  y: {y}")
-            addImage(ax, attentionImages[i], x+630, y+25, 0.7)
+            xOffset = x+630
+            yOffset = y-225
+            addImage(ax, attentionImages[i], xOffset, yOffset, 0.70, f"head {i+1}", titleOffset= -130)
         
         ax.axis("off")
         plt.show()
