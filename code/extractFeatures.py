@@ -83,6 +83,8 @@ def main(folderPath = "../data/dataset/train"):
     labelSet = []
     labelMap = {}
     attentionMaps = {}
+    featuresToImages = {}
+    tokenDict = {}
 
     classFolders = sorted([d for d in os.listdir(folderPath)
                            if os.path.isdir(os.path.join(folderPath, d))])
@@ -101,12 +103,15 @@ def main(folderPath = "../data/dataset/train"):
             with torch.no_grad():
                 features = model(imageTensor)
                 attention = extractAttention(model, imageTensor)
+                tokens = model.forward_features(imageTensor)
+                #print(tokens.keys())
+                tokenDict[imageFile] = tokens["x_norm_patchtokens"].squeeze(0).cpu().numpy()
 
             clsAttention = attention[0, :, 0, 1:]
 
             featureSet.append(features.squeeze(0).cpu().numpy())
             labelSet.append(labelIndex)
-            #print(clsAttention)
+            featuresToImages[len(featureSet)] = imageFile
             attentionMaps[imageFile] = clsAttention.cpu().numpy()
 
     print("Finished extracting features.")
@@ -114,7 +119,7 @@ def main(folderPath = "../data/dataset/train"):
     # attention = model.get_last_selfattention(imageTensor)
     # clsAttention = attention[0, :, 0, 1:]
 
-    return np.array(featureSet), np.array(labelSet), labelMap, attentionMaps
+    return np.array(featureSet), np.array(labelSet), labelMap, attentionMaps, tokenDict
 
 if __name__ == "__main__":
     main()

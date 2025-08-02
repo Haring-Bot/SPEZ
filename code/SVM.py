@@ -1,4 +1,4 @@
-from sklearn.svm import SVC
+from sklearn.svm import LinearSVC  # MUST change this
 from sklearn.metrics import accuracy_score
 import numpy as np
 import argparse
@@ -11,8 +11,10 @@ def main(featuresTrain, labelsTrain, featuresTest, labelsTest):
 
     X = featuresTrain
     Y = labelsTrain
+    weightDict = {}
 
-    model = SVC(kernel="linear",
+    # LinearSVC uses one-vs-rest by default
+    model = LinearSVC(
                 C = svmC,
                 class_weight = svmClassWeight,
                 tol = svmTol,
@@ -22,8 +24,17 @@ def main(featuresTrain, labelsTrain, featuresTest, labelsTest):
     pred = model.predict(featuresTest)
     accuracy = accuracy_score(labelsTest, pred)
 
+    print(f"coef shape:{model.coef_.shape[0]}")
+
+    for i in range(model.coef_.shape[0]):
+        weights = model.coef_[i]
+        weightDict[i] = weights
+        
+
     print(f"The SVM achieves an accuracy of {accuracy*100} %")
     print(pred)
+
+    return model, weightDict
 
 
 
