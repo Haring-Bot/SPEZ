@@ -91,6 +91,12 @@ def visualizeAttentionMap(attentionMapDict, pathImages):
                     head[i] = 0
             singleMap = head.reshape(16, 16)
 
+            print(type(singleMap))
+
+            highestPixel = np.max(singleMap)
+            max_position = np.unravel_index(np.argmax(singleMap), singleMap.shape)
+            print(f"highestPixel at position {max_position} with a value of {highestPixel}")
+
             image = combineFishHeatmap(singleMap)
             
             attentionImages[headNo] = image
@@ -121,6 +127,38 @@ def visualizeAttentionMap(attentionMapDict, pathImages):
             addImage(ax, attentionImages[i], xOffset, yOffset, 0.70, f"head {i+1}", titleOffset= -130)
         
         ax.axis("off")
+        plt.show()
+
+def visualizeRelevancyMap(relevancyMapDict, pathImages):
+    for imageName, relevancyMap in relevancyMapDict.items():
+        fishImage = mpimg.imread(os.path.join(pathImages, imageName))
+
+        fig, ax = plt.subplots()
+        ax.axis('off')
+
+        ax.imshow(fishImage, interpolation="nearest")
+
+        heatmap = ax.imshow(
+            relevancyMap,
+            cmap="jet",
+            alpha=0.5,
+            interpolation="nearest"
+        )
+        plt.colorbar(heatmap, ax=ax)
+
+        # Add title above the image
+        ax.text(
+            0.5, 1.05,               # x = middle, y = slightly above
+            imageName,
+            ha="center",
+            va="bottom",
+            color="black",
+            fontsize=20,
+            backgroundcolor="white",
+            weight="bold",
+            transform=ax.transAxes   # use relative axes coordinates
+        )
+
         plt.show()
 
 
