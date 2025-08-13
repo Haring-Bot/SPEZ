@@ -76,6 +76,7 @@ def main(folderPath = "../data/dataset/train"):
         device = torch.device("cpu")
 
     model = torch.hub.load("facebookresearch/dinov2", "dinov2_vitb14")
+    #model = torch.hub.load("facebookresearch/dinov2", "dinov2_vitb14", pretrained=True, force_reload=True)
     model.eval().to(device)
 
     imageExtensions = (".png", ".jpg", ".jpeg")
@@ -100,6 +101,14 @@ def main(folderPath = "../data/dataset/train"):
             imagePath = os.path.join(classFolderPath, imageFile)
             imageTensor = preprocessImage(imagePath).to(device)
 
+            # # Debugging: Print image tensor shape and stats
+            # print(f"Image tensor shape: {imageTensor.shape}")
+            # print(f"Image tensor stats: min={imageTensor.min()}, max={imageTensor.max()}, mean={imageTensor.mean()}")
+
+            # # Save a processed image to check visually
+            # import torchvision.transforms as T
+            # T.ToPILImage()(imageTensor.squeeze(0)).save("debug_processed.png")
+
             with torch.no_grad():
                 features = model(imageTensor)
                 attention = extractAttention(model, imageTensor)
@@ -108,6 +117,9 @@ def main(folderPath = "../data/dataset/train"):
                 tokenDict[imageFile] = tokens["x_norm_patchtokens"].squeeze(0).cpu().numpy()
 
             clsAttention = attention[0, :, 0, 1:]
+
+            #print(f"Raw attention shape: {attention.shape}")
+            #print(f"Raw attention sample: {attention[0, 0, :5, :5]}")
 
             # print(f"length features{len(features)}")
             # print(features.shape)

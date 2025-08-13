@@ -17,10 +17,13 @@ def boxCoordinates(i, xLim, yLim, rows, cols):
 
     return goalX, goalY
 
-def visualizeAttentionMap(attentionMapDict, pathImages):
-    xMax = 1169
-    yMax = 827
+def visualizeAttentionMap(attentionMapDict, pathImages, saveImages = False):
+    xMax = 1400
+    yMax = 800
+    aspectRatio = yMax / xMax
     
+    print("starting to create attention map")
+
     def addImage(ax, img, x, y, scale = 1.0, title = "", titleOffset = 50):
         imageBox = OffsetImage(img, zoom = scale)
         ab = AnnotationBbox(imageBox, (x, y), frameon=False)
@@ -91,21 +94,21 @@ def visualizeAttentionMap(attentionMapDict, pathImages):
                     head[i] = 0
             singleMap = head.reshape(16, 16)
 
-            print(type(singleMap))
+            #print(type(singleMap))
 
             highestPixel = np.max(singleMap)
             max_position = np.unravel_index(np.argmax(singleMap), singleMap.shape)
-            print(f"highestPixel at position {max_position} with a value of {highestPixel}")
+            #print(f"highestPixel at position {max_position} with a value of {highestPixel}")
 
             image = combineFishHeatmap(singleMap)
             
             attentionImages[headNo] = image
             headNo = headNo + 1
 
-        fig, ax = plt.subplots(figsize=(xMax/10, yMax/10), dpi=100)
+        fig, ax = plt.subplots(figsize=(12, 12*aspectRatio), dpi=100)
         ax.set_facecolor("white")
         ax.set_xlim(0, xMax)
-        ax.set_ylim(0, yMax)
+        ax.set_ylim(-100, yMax)
 
         plt.text(
             x = xMax/2, y = yMax,
@@ -117,19 +120,28 @@ def visualizeAttentionMap(attentionMapDict, pathImages):
             backgroundcolor = "white",
             weight = "bold"
         )
-        addImage(ax, fishImage,200 , yMax/2 - 100, 2.5)
+        addImage(ax, fishImage,200 , yMax/2 - 122, 1.5)
 
         for i in range(len(attentionImages)):
-            x, y = boxCoordinates(i, 700, 830, 3, 4)
+            x, y = boxCoordinates(i, 900, 830, 3, 4)
             #print(f"x: {x+600}  y: {y}")
-            xOffset = x+630
-            yOffset = y-225
-            addImage(ax, attentionImages[i], xOffset, yOffset, 0.70, f"head {i+1}", titleOffset= -130)
+            xOffset = x+670
+            yOffset = y-275
+            #print(f"added image at {xOffset}, {yOffset}")
+            addImage(ax, attentionImages[i], xOffset, yOffset, 0.45, f"head {i+1}", titleOffset= -135)
         
         ax.axis("off")
-        plt.show()
 
-def visualizeRelevancyMap(relevancyMapDict, pathImages):
+        if saveImages:
+            savePath = os.path.join("../results/", f"{imageName}_attentionMap.png")
+            plt.savefig(savePath, dpi = 100, bbox_inches='tight')
+            print(f"image {savePath} was saved")
+            plt.close()
+        else:
+            plt.show()
+
+def visualizeRelevancyMap(relevancyMapDict, pathImages, saveImages = False):
+    print("starting creating relevancyMap")
     for imageName, relevancyMap in relevancyMapDict.items():
         fishImage = mpimg.imread(os.path.join(pathImages, imageName))
 
@@ -158,8 +170,13 @@ def visualizeRelevancyMap(relevancyMapDict, pathImages):
             weight="bold",
             transform=ax.transAxes   # use relative axes coordinates
         )
-
-        plt.show()
+        if saveImages:
+            savePath = os.path.join("../results/", f"{imageName}_relevancyMap.png")
+            plt.savefig(savePath, dpi = 100, bbox_inches='tight')
+            print(f"image {savePath} was saved")
+            plt.close()
+        else:
+            plt.show()
 
 
 def main():

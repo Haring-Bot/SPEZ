@@ -5,18 +5,26 @@ import matplotlib.pyplot as plt
 
 def combineAttentionWeight(weights, features, labels, attention, tokens):
     relevancyMaps = {}
+    correctPredictions = 0
+    totalPredictions = 0
+    
     for n in range(len(features)):
-        #print(n)
         probabilities = []
         imageNames = list(tokens.keys())
 
         for i in range(len(weights)):
             probabilities.append(np.dot(weights[i], features[n]))
-        #     print(f"{i}: {probabilities[i]}")
-        prediction= np.argmax(probabilities)
-        # print(f"prediction:{np.argmax(probabilities)}")
-        # print(f"truth:{labels[n]}")
-
+        
+        prediction = np.argmax(probabilities)
+        truth = labels[n]
+        
+        # Count correct predictions
+        if prediction == truth:
+            correctPredictions += 1
+        totalPredictions += 1
+        
+        # Optional: Print individual predictions
+        # print(f"Image {n}: Prediction={prediction}, Truth={truth}, Correct={prediction==truth}")
 
         relevance = np.dot(tokens[imageNames[n]], weights[prediction])
         attentionImage = attention[imageNames[n]].reshape(12, -1)
@@ -32,13 +40,12 @@ def combineAttentionWeight(weights, features, labels, attention, tokens):
         uRelevancyMap -= uRelevancyMap.min()
         uRelevancyMap /= uRelevancyMap.max()
 
-        # plt.imshow(uRelevancyMap, cmap='jet')
-        # plt.title(imageNames[n])
-        # plt.axis('off')
-        # plt.show()
-        # print(f"relevancyMap shape:{uRelevancyMap.shape}")
-        # print(f"relevancyMap length:{len(uRelevancyMap)}")
         relevancyMaps[imageNames[n]] = uRelevancyMap
+    
+    # Calculate and print accuracy
+    accuracy = correctPredictions / totalPredictions
+    print(f"Validation Accuracy: {accuracy:.4f} ({correctPredictions}/{totalPredictions})")
+    
     return relevancyMaps
 
 def main():
