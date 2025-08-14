@@ -27,21 +27,19 @@ preprocess = transforms.Compose([
 def extractAttention(model, imageTensor):
     attentionScores = []
 
-    #Save original forward method
+    # Save original forward method
     attentionModule = model.blocks[-1].attn
     originalForward = attentionModule.forward
 
-    def forward_hooked(x):          #1to1 rebuild of forward but with attention saved
-        qkv = attentionModule.qkv(x)  #shape (B, N, 3*C)
+    def forward_hooked(x):
+        qkv = attentionModule.qkv(x)
         B, N, C3 = qkv.shape
         C = C3 // 3
 
         num_heads = 12  
         head_dim = C // num_heads
 
-        #reshape qkv to separate heads
         qkv = qkv.reshape(B, N, 3, num_heads, head_dim).permute(2, 0, 3, 1, 4)
-
         q, k, v = qkv[0], qkv[1], qkv[2]
 
         attn = (q @ k.transpose(-2, -1)) * (head_dim ** -0.5)
@@ -55,7 +53,6 @@ def extractAttention(model, imageTensor):
 
         return out
 
-    #repatch with original forward
     attentionModule.forward = forward_hooked
 
     with torch.no_grad():
@@ -75,7 +72,8 @@ def main(folderPath = "../data/dataset/train"):
         print("! No gpu found. Using cpu instead.")
         device = torch.device("cpu")
 
-    model = torch.hub.load("facebookresearch/dinov2", "dinov2_vitb14")
+    #model = torch.hub.load("facebookresearch/dinov2", "dinov2_vitb14")
+    model = torch.hub.load("facebookresearch/dinov2", "dinov2_vitb14_reg")
     #model = torch.hub.load("facebookresearch/dinov2", "dinov2_vitb14", pretrained=True, force_reload=True)
     model.eval().to(device)
 
@@ -113,11 +111,12 @@ def main(folderPath = "../data/dataset/train"):
                 features = model(imageTensor)
                 attention = extractAttention(model, imageTensor)
                 tokens = model.forward_features(imageTensor)
-                #print(tokens.keys())
                 tokenDict[imageFile] = tokens["x_norm_patchtokens"].squeeze(0).cpu().numpy()
 
-            clsAttention = attention[0, :, 0, 1:]
-
+            # Fix: Skip CLS token (index 0) AND register tokens (indices 1-4)
+            # Only take patch tokens (indices 5 onwards)
+            clsAttention = attention[0, :, 0, 5:]  # Changed from 1: to 5:]
+            
             #print(f"Raw attention shape: {attention.shape}")
             #print(f"Raw attention sample: {attention[0, 0, :5, :5]}")
 

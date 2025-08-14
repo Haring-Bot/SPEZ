@@ -10,8 +10,8 @@ import numpy as np
 
 
 def main():
-    doSaveModel = False
-    doLoadModel = True
+    doSaveModel = True
+    doLoadModel = False
     pathImages = "../data/images"
     #pathImages = "../data/animal_images"
 
