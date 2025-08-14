@@ -62,7 +62,7 @@ def extractAttention(model, imageTensor):
 
     return attentionScores[0] if attentionScores else None
 
-def main(folderPath = "../data/dataset/train"):
+def main(folderPath = "../data/images"):
     print("start feature extraction")
 
     if torch.cuda.is_available():

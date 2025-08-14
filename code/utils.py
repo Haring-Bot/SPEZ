@@ -3,27 +3,15 @@ import pickle
 import re
 from datetime import datetime
 
-def saveModel(trainFeatures, trainLabels, trainMap, trainAttention, tokensTrain,
-              testFeatures, testLabels, testMap, testAttention, tokensTest,
-              validationFeatures, validationLabels, validationMap, validationAttention, tokensValidation):
+def saveModel(features, labels, mapping, attentionMap, tokenDict):
     date_str = datetime.now().strftime("%Y%m%d%H%M")
     saveFile = f"../models/model_{date_str}.pkl"
     saveData = {
-        'trainFeatures': trainFeatures,
-        'trainLabels': trainLabels,
-        'trainMap': trainMap,
-        'trainAttention': trainAttention,
-        'tokensTrain': tokensTrain,
-        'testFeatures': testFeatures,
-        'testLabels': testLabels,
-        'testMap': testMap,
-        'testAttention': testAttention,
-        'tokensTest': tokensTest,
-        'validationFeatures': validationFeatures,
-        'validationLabels': validationLabels,
-        'validationMap': validationMap,
-        'validationAttention': validationAttention,
-        'tokensValidation': tokensValidation
+        'features': features,
+        'labels': labels,
+        'mapping': mapping,
+        'attentionMap': attentionMap,
+        "tokenDict" : tokenDict
     }
     with open(saveFile, "wb") as f:
         pickle.dump(saveData, f)
@@ -66,29 +54,16 @@ def loadModel(path="default"):
             savedData = pickle.load(f)
 
         # Extract the data from saved dictionary
-        trainFeatures = savedData['trainFeatures']
-        trainLabels = savedData['trainLabels']
-        trainMap = savedData['trainMap']
-        trainAttention = savedData['trainAttention']
-        tokensTrain = savedData['tokensTrain']
-        testFeatures = savedData['testFeatures']
-        testLabels = savedData['testLabels']
-        testMap = savedData['testMap']
-        testAttention = savedData['testAttention']
-        tokensTest = savedData['tokensTest']
-        validationFeatures = savedData['validationFeatures']
-        validationLabels = savedData['validationLabels']
-        validationMap = savedData['validationMap']
-        validationAttention = savedData['validationAttention']
-        tokensValidation = savedData['tokensValidation']
+        features = savedData['features']
+        labels = savedData['labels']
+        mapping = savedData['mapping']
+        attentionMap = savedData['attentionMap']
+        tokenDict = savedData["tokenDict"]
         
         print("Features loaded successfully!")
         
         # Return all the variables as a tuple
-        return (trainFeatures, trainLabels, trainMap, trainAttention, tokensTrain,
-                testFeatures, testLabels, testMap, testAttention, tokensTest,
-                validationFeatures, validationLabels, validationMap, 
-                validationAttention, tokensValidation)
+        return (features, labels, mapping, attentionMap, tokenDict)
     else:
         print(f"path {path} couldn't be found. Starting new training...")
         return None

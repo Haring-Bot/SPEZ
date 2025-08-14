@@ -7,6 +7,7 @@ import utils
 
 import os
 import numpy as np
+from sklearn.model_selection import KFold
 
 
 def main():
@@ -14,82 +15,79 @@ def main():
     doLoadModel = False
     pathImages = "../data/images"
     #pathImages = "../data/animal_images"
+    saveImages = False
+    pathModel = None
+    nFolds = 5
 
     print("starting code")
     
     if doLoadModel:
-        loaded_data = utils.loadModel()
-        if loaded_data is not None:
-            (trainFeatures, trainLabels, trainMap, trainAttention, tokensTrain,
-             testFeatures, testLabels, testMap, testAttention, tokensTest,
-             validationFeatures, validationLabels, validationMap, 
-             validationAttention, tokensValidation) = loaded_data
-            
-            print("Using loaded model data")
-        else:
-            doLoadModel = False 
-    
-    if not doLoadModel:
-        pathDataset = splitData.main(pathImages, 0.8, 0.15)
-        trainFeatures, trainLabels, trainMap, trainAttention, tokensTrain = extractFeatures.main(os.path.join(pathDataset, "train"))
-        testFeatures, testLabels, testMap, testAttention, tokensTest = extractFeatures.main(os.path.join(pathDataset, "test"))
-        validationFeatures, validationLabels, validationMap, validationAttention, tokensValidation = extractFeatures.main(os.path.join(pathDataset, "validation"))
-        
-        if doSaveModel:
-            utils.saveModel(trainFeatures, trainLabels, trainMap, trainAttention, tokensTrain,
-                           testFeatures, testLabels, testMap, testAttention, tokensTest,
-                           validationFeatures, validationLabels, validationMap, 
-                           validationAttention, tokensValidation)
-    
-    if trainMap == testMap == validationMap:
-        print("labels for all three sets identical. Continueing...")
+        features, labels, mapping, attentionMap, tokenDict = utils.loadModel(pathModel)
     else:
-        print("!! labels not identical. Shutting down...")
-        return 0
+        features, labels, mapping, attentionMap, tokenDict = extractFeatures.main("../data/images sorted")
+        if doSaveModel:
+            utils.saveModel(features, labels, mapping, attentionMap, tokenDict)
+
+    # Add debugging here
+    print(f"Features extracted: {len(features)}")
+    print(f"Labels extracted: {len(labels)}")
+    print(f"AttentionMap keys: {len(attentionMap) if attentionMap else 0}")
     
-    SVMmodel, weights = SVM.main(trainFeatures, trainLabels, testFeatures, testLabels)
+    if len(features) == 0:
+        print("ERROR: No features extracted! Check your image directory.")
+        return
 
-    relevancyMap = relevancy.combineAttentionWeight(weights, validationFeatures, validationLabels, validationAttention, tokensValidation)
+    featureArray = np.array(features)
+    labelArray = np.array(labels)
+    mappingArray = np.array(mapping)
+    attentionMapArray = np.array(attentionMap)
 
-    # print(f"type attention{type(validationAttention)}")
-    # print(f"type relevancyMap{type(relevancyMap)}")
+    imageNames = list(attentionMap.keys())
+    foldAccuracies = []
 
-    # # Print shape of first value in both maps
-    # print(f"validationAttention first value shape: {next(iter(validationAttention.values())).shape}")
-    # print(f"relevancyMap first value shape: {next(iter(relevancyMap.values())).shape}")
+    kfold = KFold(n_splits=nFolds, shuffle=True, random_state=32)
 
-    # print(list(validationAttention.keys()))
-    # print(list(relevancyMap.keys()))
+    for fold, (trainIDs, valIDs) in enumerate(kfold.split(featureArray)):
+        trainFeatures = featureArray[trainIDs].tolist()
+        trainLabels = labelArray[trainIDs].tolist()
+        valFeatures = featureArray[valIDs].tolist()
+        valLabels = labelArray[valIDs].tolist()
 
-    # print(f"attention length:{len(validationAttention[next(iter(validationAttention))])}")
-    # print(f"relevancy length:{len(relevancyMap[next(iter(validationAttention))])}")
+        valImages = [imageNames[i] for i in valIDs]
 
-    # print("attention")
-    # print(validationAttention[next(iter(validationAttention))])
-    # print("relevancy")
-    # print(relevancyMap[next(iter(validationAttention))])
-    # print(list(validationAttention.keys()))
-    # print(list(relevancyMap.keys()))
-    visualize.visualizeAttentionMap(validationAttention, pathImages, True)
-    visualize.visualizeRelevancyMap(relevancyMap, pathImages, True)
+        valAttention = {img: attentionMap[img] for img in valImages}
+        valTokens = {img: tokenDict[img] for img in valImages}
+    
+        accuracy, weights = SVM.main(trainFeatures, trainLabels, valFeatures, valLabels)
 
-    # Print shape of first key-value pair
-    first_key = next(iter(validationAttention))
-    print(f"validationAttention['{first_key}'].shape: {validationAttention[first_key].shape}")
+        relevancyMap = relevancy.combineAttentionWeight(weights, valFeatures, valLabels, valAttention, valTokens)
 
-    first_key = next(iter(relevancyMap))
-    print(f"relevancyMap['{first_key}'].shape: {relevancyMap[first_key].shape}")
+        if saveImages:
+            visualize.visualizeAttentionMap(valAttention, pathImages, True)
+            visualize.visualizeRelevancyMap(relevancyMap, pathImages, True)
 
-    # Uncomment and add this debugging:
-    first_key = next(iter(validationAttention))
-    attention_data = validationAttention[first_key]
+        foldAccuracies.append(accuracy)
 
-    print(f"Attention statistics for {first_key}:")
-    for head_idx in range(attention_data.shape[0]):
-        head = attention_data[head_idx]
-        print(f"Head {head_idx}: min={head.min():.6f}, max={head.max():.6f}, argmax={head.argmax()}")
-        print(f"  Top 5 values: {np.sort(head)[-5:]}")
-        print(f"  Top 5 positions: {np.argsort(head)[-5:]}")
+    meanAccuracy = np.mean(foldAccuracies)      
+    print(f"the mean accuracy is {meanAccuracy * 100}%")
+
+    # # Print shape of first key-value pair
+    # first_key = next(iter(validationAttention))
+    # print(f"validationAttention['{first_key}'].shape: {validationAttention[first_key].shape}")
+
+    # first_key = next(iter(relevancyMap))
+    # print(f"relevancyMap['{first_key}'].shape: {relevancyMap[first_key].shape}")
+
+    # # Uncomment and add this debugging:
+    # first_key = next(iter(validationAttention))
+    # attention_data = validationAttention[first_key]
+
+    # print(f"Attention statistics for {first_key}:")
+    # for head_idx in range(attention_data.shape[0]):
+    #     head = attention_data[head_idx]
+    #     print(f"Head {head_idx}: min={head.min():.6f}, max={head.max():.6f}, argmax={head.argmax()}")
+    #     print(f"  Top 5 values: {np.sort(head)[-5:]}")
+    #     print(f"  Top 5 positions: {np.argsort(head)[-5:]}")
 
     print("code finished")
 

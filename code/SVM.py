@@ -24,8 +24,6 @@ def main(featuresTrain, labelsTrain, featuresTest, labelsTest):
     pred = model.predict(featuresTest)
     accuracy = accuracy_score(labelsTest, pred)
 
-    print(f"coef shape:{model.coef_.shape[0]}")
-
     for i in range(model.coef_.shape[0]):
         weights = model.coef_[i]
         #print(f"weights have a length of{len(weights)}")
@@ -33,9 +31,9 @@ def main(featuresTrain, labelsTrain, featuresTest, labelsTest):
         
 
     print(f"The SVM achieves an accuracy of {accuracy*100} %")
-    print(pred)
+    #print(pred)
 
-    return model, weightDict
+    return accuracy, weightDict
 
 
 
