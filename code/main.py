@@ -7,12 +7,12 @@ import utils
 
 import os
 import numpy as np
-from sklearn.model_selection import KFold
+from sklearn.model_selection import StratifiedKFold
 
 
 def main():
-    doSaveModel = False
-    doLoadModel = False
+    doSaveModel = True
+    doLoadModel = True
     pathImages = "../data/images"
     #pathImages = "../data/animal_images"
     saveImages = False
@@ -24,12 +24,13 @@ def main():
     if doLoadModel:
         features, labels, mapping, attentionMap, tokenDict = utils.loadModel(pathModel)
     else:
-        if pathImages == "../data/images": pathImages = "../data/images sorted"
-        features, labels, mapping, attentionMap, tokenDict = extractFeatures.main(pathImages)
+        pathImagesExtraction = pathImages
+        if pathImages == "../data/images": pathImagesExtraction = "../data/images sorted"
+        if pathImages == "../data/animal_images": pathImagesExtraction = "../data/animal_images_sorted"
+        features, labels, mapping, attentionMap, tokenDict = extractFeatures.main(pathImagesExtraction)
         if doSaveModel:
             utils.saveModel(features, labels, mapping, attentionMap, tokenDict)
 
-    # Add debugging here
     print(f"Features extracted: {len(features)}")
     print(f"Labels extracted: {len(labels)}")
     print(f"AttentionMap keys: {len(attentionMap) if attentionMap else 0}")
@@ -46,9 +47,12 @@ def main():
     imageNames = list(attentionMap.keys())
     foldAccuracies = []
 
-    kfold = KFold(n_splits=nFolds, shuffle=True, random_state=32)
+    # Ensure balanced class distribution across folds
+    skfold = StratifiedKFold(n_splits=nFolds, shuffle=True, random_state=32)
 
-    for fold, (trainIDs, valIDs) in enumerate(kfold.split(featureArray)):
+    allRelevancyMaps = {}
+
+    for fold, (trainIDs, valIDs) in enumerate(skfold.split(featureArray, labelArray)):
         trainFeatures = featureArray[trainIDs].tolist()
         trainLabels = labelArray[trainIDs].tolist()
         valFeatures = featureArray[valIDs].tolist()
@@ -68,6 +72,9 @@ def main():
             visualize.visualizeRelevancyMap(relevancyMap, pathImages, True)
 
         foldAccuracies.append(accuracy)
+        allRelevancyMaps |= relevancyMap
+
+    combinedRelevancy = visualize.combineRelevancyMaps(allRelevancyMaps)
 
     meanAccuracy = np.mean(foldAccuracies)      
     print(f"the mean accuracy is {meanAccuracy * 100}%")

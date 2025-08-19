@@ -13,7 +13,6 @@ def main(featuresTrain, labelsTrain, featuresTest, labelsTest):
     Y = labelsTrain
     weightDict = {}
 
-    # LinearSVC uses one-vs-rest by default
     model = LinearSVC(
                 C = svmC,
                 class_weight = svmClassWeight,
@@ -23,6 +22,9 @@ def main(featuresTrain, labelsTrain, featuresTest, labelsTest):
 
     pred = model.predict(featuresTest)
     accuracy = accuracy_score(labelsTest, pred)
+    for i in range(len(pred)):
+        if pred[i] != labelsTest[i]:
+            print(f"Sample {i}: label={labelsTest[i]}, pred={pred[i]}")
 
     for i in range(model.coef_.shape[0]):
         weights = model.coef_[i]

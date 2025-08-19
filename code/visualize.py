@@ -6,7 +6,7 @@ from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 from matplotlib import cm
 from skimage.transform import resize
 
-from config import cutoffWeightAttention, transparencyAboveCutoff, cmapType
+from config import cutoffWeightAttention, transparencyAboveCutoff, cmapType, resultsFolder, classes, relevancyOperations
 
 def boxCoordinates(i, xLim, yLim, rows, cols):
     offsetX = xLim / cols
@@ -136,7 +136,7 @@ def visualizeAttentionMap(attentionMapDict, pathImages, saveImages = False):
         ax.axis("off")
 
         if saveImages:
-            savePath = os.path.join("../results/", f"{imageName}_attentionMap.png")
+            savePath = os.path.join(resultsFolder, f"{imageName}_attentionMap.png")
             plt.savefig(savePath, dpi = 100, bbox_inches='tight')
             print(f"image {savePath} was saved")
             plt.close()
@@ -174,13 +174,67 @@ def visualizeRelevancyMap(relevancyMapDict, pathImages, saveImages = False):
             transform=ax.transAxes   # use relative axes coordinates
         )
         if saveImages:
-            savePath = os.path.join("../results/", f"{imageName}_relevancyMap.png")
+            savePath = os.path.join(resultsFolder, f"{imageName}_relevancyMap.png")
             plt.savefig(savePath, dpi = 100, bbox_inches='tight')
             print(f"image {savePath} was saved")
             plt.close()
         else:
             plt.show()
 
+def combineRelevancyMaps(mapDict):
+    def saveHeatmap(array, name):
+        savePath = os.path.join(resultsFolder, "summary")
+        plt.figure(figsize=(6, 6))
+        plt.imshow(array, cmap=cmapType)
+        plt.axis("off")
+        plt.colorbar()
+        plt.savefig(os.path.join(savePath, f"{name}RelevancyMap.png"))
+        plt.close()
+    
+    relevancies = {name: [] for name in classes}
+    for indivKey, indivEntry in mapDict.items():
+        for indivClass in classes:
+            if indivClass in indivKey:
+                relevancies[indivClass].append(indivEntry)
+
+    for i in relevancies:
+        if relevancyOperations["mean"]:
+            mean = np.mean(np.stack(relevancies[i], axis=0), axis=0)
+            saveHeatmap(mean, f"{i}_mean")
+        if relevancyOperations["median"]:
+            median = np.median(np.stack(relevancies[i], axis=0), axis=0)
+            saveHeatmap(median, f"{i}_median")
+        if relevancyOperations["std"]:
+            std = np.std(np.stack(relevancies[i], axis=0), axis=0)
+            saveHeatmap(std, f"{i}_std")
+        if relevancyOperations.get("max", False):
+            maxArray = np.max(np.stack(relevancies[i], axis=0), axis=0)
+            saveHeatmap(maxArray, f"{i}_max")
+
+    allClasses = []
+    for className, relevancyList in relevancies.items():
+        allClasses.extend(relevancyList)
+
+    if relevancyOperations.get("mean", False):
+        meanAll = np.mean(allClasses, axis=0)
+        saveHeatmap(meanAll, "allClasses_mean")
+
+    if relevancyOperations.get("median", False):
+        medianAll = np.median(allClasses, axis=0)
+        saveHeatmap(medianAll, "allClasses_median")
+
+    if relevancyOperations.get("std", False):
+        stdAll = np.std(allClasses, axis=0)
+        saveHeatmap(stdAll, "allClasses_std")
+
+    if relevancyOperations.get("max", False):
+        maxAll = np.max(allClasses, axis=0)
+        saveHeatmap(maxAll, "allClasses_max")
+    
+
+    print(f"Total relevancy maps across all classes: {len(allClasses)}")
+
+    return
 
 def main():
     print("main")

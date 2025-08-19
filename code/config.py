@@ -13,3 +13,14 @@ svmRandomSate = 42
 cutoffWeightAttention = 0.01
 transparencyAboveCutoff = 0.6
 cmapType = "hot"
+resultsFolder = "../results"
+#resultsFolder = "../results animals"
+
+#analysis
+relevancyOperations = {
+    "mean" : False,
+    "median" : True,
+    "std" : False,
+    "max" : False,
+    "consistency" : False
+}
