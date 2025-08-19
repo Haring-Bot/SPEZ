@@ -110,13 +110,13 @@ def main(folderPath = "../data/images"):
             with torch.no_grad():
                 features = model(imageTensor)
                 attention = extractAttention(model, imageTensor)
+                #print(f"attention shape: {attention.shape}")
                 tokens = model.forward_features(imageTensor)
                 tokenDict[imageFile] = tokens["x_norm_patchtokens"].squeeze(0).cpu().numpy()
 
-            # Fix: Skip CLS token (index 0) AND register tokens (indices 1-4)
-            # Only take patch tokens (indices 5 onwards)
-            clsAttention = attention[0, :, 0, 5:]  # Changed from 1: to 5:]
-            
+            #skip CLS token (index 0) and register tokens (1-4)
+            clsAttention = attention[0, :, 0, 5:]
+            #print(f"cls attention shape: {clsAttention.shape}")
             #print(f"Raw attention shape: {attention.shape}")
             #print(f"Raw attention sample: {attention[0, 0, :5, :5]}")
 

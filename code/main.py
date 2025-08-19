@@ -11,12 +11,12 @@ from sklearn.model_selection import KFold
 
 
 def main():
-    doSaveModel = True
+    doSaveModel = False
     doLoadModel = False
     pathImages = "../data/images"
     #pathImages = "../data/animal_images"
     saveImages = False
-    pathModel = None
+    pathModel = "default"
     nFolds = 5
 
     print("starting code")
@@ -24,7 +24,8 @@ def main():
     if doLoadModel:
         features, labels, mapping, attentionMap, tokenDict = utils.loadModel(pathModel)
     else:
-        features, labels, mapping, attentionMap, tokenDict = extractFeatures.main("../data/images sorted")
+        if pathImages == "../data/images": pathImages = "../data/images sorted"
+        features, labels, mapping, attentionMap, tokenDict = extractFeatures.main(pathImages)
         if doSaveModel:
             utils.saveModel(features, labels, mapping, attentionMap, tokenDict)
 

@@ -93,9 +93,12 @@ def visualizeAttentionMap(attentionMapDict, pathImages, saveImages = False):
                 if head[i] < cutoffWeightAttention:
                     head[i] = 0
             singleMap = head.reshape(16, 16)
-
-            #print(type(singleMap))
-
+    
+            # print(f"singleMap shape: {singleMap.shape}")
+            # print(f"singleMap type: {type(singleMap)}")
+    
+            # print(f"singleMap min: {singleMap.min():.4f}, max: {singleMap.max():.4f}")
+    
             highestPixel = np.max(singleMap)
             max_position = np.unravel_index(np.argmax(singleMap), singleMap.shape)
             #print(f"highestPixel at position {max_position} with a value of {highestPixel}")
