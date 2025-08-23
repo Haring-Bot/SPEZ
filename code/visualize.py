@@ -234,6 +234,8 @@ def combineRelevancyMaps(mapDict):
 
     print(f"Total relevancy maps across all classes: {len(allClasses)}")
 
+    print(relevancies)
+
     return
 
 def main():

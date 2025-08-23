@@ -5,7 +5,7 @@ import shutil
 
 from config import classes, setTypes
 
-def main(pathAllImages, pTrain = 0.8, pTest = 0.1):
+def main(pathAllImages, pTrain = 0.8, pTest = 0.1, skipBalancing=False):
     if pTrain+ pTest > 1:
         print("pTrain and pTest in the splitData function are larger than 1. Please adjust. \n !!Script terminated!!")
         return 0
@@ -42,6 +42,8 @@ def main(pathAllImages, pTrain = 0.8, pTest = 0.1):
         if all(any(sub in s for s in testImages) for sub in classes):
             if all(any(sub in s for s in validationImages) for sub in classes):
                 allTestFolderFull = True
+        elif skipBalancing:
+            allTestFolderFull = True
         else:
             print("first try splitting the images left one folder empty. Trying to split again.")
 
@@ -77,4 +79,4 @@ def main(pathAllImages, pTrain = 0.8, pTest = 0.1):
         if image in validationImages:
             shutil.copy(pathAllImages + "/" + image, validationF + "/" +  imageType)
 
-    return datasetF
+    return os.path.join(datasetF, "train"), os.path.join(datasetF, "validation")
