@@ -3,16 +3,25 @@ import pickle
 import re
 from datetime import datetime
 
-def saveModel(features, labels, mapping, attentionMap, tokenDict):
+def saveModel(featuresT, labelsT, mappingT, attentionMapT, tokenDictT, featuresV, labelsV, mappingV, attentionMapV, tokenDictV):
     date_str = datetime.now().strftime("%Y%m%d%H%M")
     saveFile = f"../models/model_{date_str}.pkl"
     saveData = {
-        'features': features,
-        'labels': labels,
-        'mapping': mapping,
-        'attentionMap': attentionMap,
-        "tokenDict" : tokenDict
+        'featuresT': featuresT,
+        'labelsT': labelsT,
+        'mappingT': mappingT,
+        'attentionMapT': attentionMapT,
+        'tokenDictT': tokenDictT,
+        'featuresV': featuresV,
+        'labelsV': labelsV,
+        'mappingV': mappingV,
+        'attentionMapV': attentionMapV,
+        'tokenDictV': tokenDictV
     }
+    
+    # Create models directory if it doesn't exist
+    os.makedirs("../models", exist_ok=True)
+    
     with open(saveFile, "wb") as f:
         pickle.dump(saveData, f)
 
@@ -46,24 +55,30 @@ def loadModel(path="default"):
             print("No valid model files found")
             return None
         
-        path = os.path.join(folderPath, newestFile)  # Fix: join with folder path
+        path = os.path.join(folderPath, newestFile)
 
     if os.path.exists(path):
         print(f"loading model from {path}...")
         with open(path, "rb") as f:
             savedData = pickle.load(f)
 
-        # Extract the data from saved dictionary
-        features = savedData['features']
-        labels = savedData['labels']
-        mapping = savedData['mapping']
-        attentionMap = savedData['attentionMap']
-        tokenDict = savedData["tokenDict"]
+        # Extract all the data from saved dictionary
+        featuresT = savedData['featuresT']
+        labelsT = savedData['labelsT']
+        mappingT = savedData['mappingT']
+        attentionMapT = savedData['attentionMapT']
+        tokenDictT = savedData['tokenDictT']
+        featuresV = savedData['featuresV']
+        labelsV = savedData['labelsV']
+        mappingV = savedData['mappingV']
+        attentionMapV = savedData['attentionMapV']
+        tokenDictV = savedData['tokenDictV']
         
-        print("Features loaded successfully!")
+        print("Model data loaded successfully!")
         
-        # Return all the variables as a tuple
-        return (features, labels, mapping, attentionMap, tokenDict)
+        # Return all variables in the same order as main.py expects
+        return (featuresT, labelsT, mappingT, attentionMapT, tokenDictT, 
+                featuresV, labelsV, mappingV, attentionMapV, tokenDictV)
     else:
         print(f"path {path} couldn't be found. Starting new training...")
         return None

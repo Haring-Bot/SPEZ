@@ -12,7 +12,7 @@ from sklearn.model_selection import StratifiedKFold
 
 def main():
     doSaveModel = False
-    doLoadModel = False
+    doLoadModel = True
     pathImages = "../data/images"
     #pathImages = "../data/animal_images"
     saveImages = True
@@ -22,16 +22,16 @@ def main():
     print("starting code")
     
     if doLoadModel:
-        featuresT, labelsT, mappingT, attentionMapT, tokenDictT = utils.loadModel(pathModel)
+        featuresT, labelsT, mappingT, attentionMapT, tokenDictT, featuresV, labelsV, mappingV, attentionMapV, tokenDictV = utils.loadModel(pathModel)
     else:
-        pathTrain, pathValidation = splitData.main(pathImages, pTrain=0.9, pTest=0, skipBalancing=True)
+        pathTrain, pathValidation = splitData.main(pathImages, pTrain=0.8, pTest=0, skipBalancing=True)
         pathImagesExtraction = pathImages
         #if pathImages == "../data/images": pathImagesExtraction = "../data/images sorted"
         #if pathImages == "../data/animal_images": pathImagesExtraction = "../data/animal_images_sorted"
         featuresT, labelsT, mappingT, attentionMapT, tokenDictT = extractFeatures.main(pathTrain)
         featuresV, labelsV, mappingV, attentionMapV, tokenDictV = extractFeatures.main(pathValidation)
         if doSaveModel:
-            utils.saveModel(featuresT, labelsT, mappingT, attentionMapT, tokenDictT)
+            utils.saveModel(featuresT, labelsT, mappingT, attentionMapT, tokenDictT, featuresV, labelsV, mappingV, attentionMapV, tokenDictV)
 
     print(f"Features extracted: {len(featuresT)}")
     print(f"Labels extracted: {len(labelsT)}")
@@ -79,7 +79,10 @@ def main():
         foldAccuracies.append(accuracy)
         allRelevancyMaps |= relevancyMap
 
-    combinedRelevancy = visualize.combineRelevancyMaps(allRelevancyMaps)
+    print(allRelevancyMaps.keys())
+    classRelevancies = visualize.combineRelevancyMaps(allRelevancyMaps)
+
+    relevancy.relevancySubstractions(classRelevancies)
 
     meanAccuracy = np.mean(foldAccuracies)      
     print(f"the mean accuracy is {meanAccuracy * 100}%")
