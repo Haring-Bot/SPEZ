@@ -12,7 +12,7 @@ svmRandomSate = 42
 #visualization
 cutoffWeightAttention = 0.01
 transparencyAboveCutoff = 0.6
-cmapType = "hot"
+cmapType = "jet"
 resultsFolder = "../results"
 #resultsFolder = "../results animals"
 

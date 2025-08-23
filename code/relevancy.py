@@ -1,9 +1,11 @@
+import os
 import numpy as np
 import torch.nn.functional as F
 import torch
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 
-from config import relevancyOperations, cmapType
+from config import relevancyOperations, cmapType, resultsFolder
 
 def combineAttentionWeight(weights, features, labels, attention, tokens):
     relevancyMaps = {}
@@ -20,13 +22,10 @@ def combineAttentionWeight(weights, features, labels, attention, tokens):
         prediction = np.argmax(probabilities)
         truth = labels[n]
         
-        # Count correct predictions
         if prediction == truth:
             correctPredictions += 1
         totalPredictions += 1
         
-        # Optional: Print individual predictions
-        # print(f"Image {n}: Prediction={prediction}, Truth={truth}, Correct={prediction==truth}")
 
         relevance = np.dot(tokens[imageNames[n]], weights[prediction])
         attentionImage = attention[imageNames[n]].reshape(12, -1)
@@ -44,16 +43,32 @@ def combineAttentionWeight(weights, features, labels, attention, tokens):
 
         relevancyMaps[imageNames[n]] = uRelevancyMap
     
-    # Calculate and print accuracy
     accuracy = correctPredictions / totalPredictions
     print(f"Validation Accuracy: {accuracy:.4f} ({correctPredictions}/{totalPredictions})")
     
     return relevancyMaps
 
 def relevancySubstractions(classRelevancies):
-    rows, cols = 6, 6
-    fig, axes = plt.subplots(rows, cols, figsize = (12,12,))
     
+    fig = plt.figure(figsize=(17, 18))
+    
+    gs = gridspec.GridSpec(7, 7, figure=fig, 
+                          height_ratios=[0.5, 1, 1, 1, 1, 1, 1],
+                          width_ratios=[1, 1, 1, 1, 1, 1, 0.25],
+                          hspace=0.05,  #vertical spacing
+                          wspace=0.05)  #horizontal spacing
+    
+    title_ax = fig.add_subplot(gs[0, :6]) 
+    title_ax.text(0.5, 0.5, 'Subtractive Relevancy Maps', 
+                  ha='center', va='center', fontsize=30, weight='bold')
+    title_ax.axis('off')
+    
+    axes = np.empty((6, 6), dtype=object)
+    for i in range(6):
+        for j in range(6):
+            axes[i, j] = fig.add_subplot(gs[i+1, j])
+    
+    im = None
     
     for operation, isEnabled in relevancyOperations.items():
         nClass1 = 0
@@ -61,14 +76,12 @@ def relevancySubstractions(classRelevancies):
         if isEnabled and operation in classRelevancies:
             for class1 in classRelevancies[operation]:
                 for class2 in classRelevancies[operation]:
-                    print(f"subtracting {class2} from {class1}")
                     if class1 == class2:
                         result = classRelevancies[operation][class1]
                     else:
                         result = classRelevancies[operation][class1] - classRelevancies[operation][class2]
-                    posImg = nClass1 * cols + nClass2
 
-                    axes[nClass1, nClass2].imshow(result, cmap=cmapType)
+                    im = axes[nClass1, nClass2].imshow(result, cmap=cmapType)
                     axes[nClass1, nClass2].set_xticks([])
                     axes[nClass1, nClass2].set_yticks([])
 
@@ -77,13 +90,19 @@ def relevancySubstractions(classRelevancies):
                     if nClass2 == 0:
                         axes[nClass1, nClass2].set_ylabel(class1, fontsize=20, rotation=90)
 
-
                     nClass2 += 1
                 nClass1 += 1
                 nClass2 = 0
-
+    
+    #colorbar
+    if im is not None:
+        cbar_ax = fig.add_subplot(gs[1:7, 6])
+        fig.colorbar(im, cax=cbar_ax)
+    
     plt.tight_layout()
-    plt.show()
+    savePath = os.path.join(resultsFolder, "summary", "subtractive_relevancyMap.png")
+    plt.savefig(savePath, dpi=100, bbox_inches='tight')
+    #plt.show()
 
 
 

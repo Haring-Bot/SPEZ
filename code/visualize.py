@@ -155,7 +155,7 @@ def visualizeRelevancyMap(relevancyMapDict, pathImages, saveImages = False):
 
         heatmap = ax.imshow(
             relevancyMap,
-            cmap="jet",
+            cmap=cmapType,
             alpha=0.5,
             interpolation="nearest"
         )
