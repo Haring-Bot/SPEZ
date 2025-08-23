@@ -3,6 +3,8 @@ import torch.nn.functional as F
 import torch
 import matplotlib.pyplot as plt
 
+from config import relevancyOperations, cmapType
+
 def combineAttentionWeight(weights, features, labels, attention, tokens):
     relevancyMaps = {}
     correctPredictions = 0
@@ -48,8 +50,45 @@ def combineAttentionWeight(weights, features, labels, attention, tokens):
     
     return relevancyMaps
 
-def main():
-    print("starting relevancy calculation")
+def relevancySubstractions(classRelevancies):
+    rows, cols = 6, 6
+    fig, axes = plt.subplots(rows, cols, figsize = (12,12,))
+    
+    
+    for operation, isEnabled in relevancyOperations.items():
+        nClass1 = 0
+        nClass2 = 0
+        if isEnabled and operation in classRelevancies:
+            for class1 in classRelevancies[operation]:
+                for class2 in classRelevancies[operation]:
+                    print(f"subtracting {class2} from {class1}")
+                    if class1 == class2:
+                        result = classRelevancies[operation][class1]
+                    else:
+                        result = classRelevancies[operation][class1] - classRelevancies[operation][class2]
+                    posImg = nClass1 * cols + nClass2
 
-if __name__ == "__main__":
-    main()
+                    axes[nClass1, nClass2].imshow(result, cmap=cmapType)
+                    axes[nClass1, nClass2].set_xticks([])
+                    axes[nClass1, nClass2].set_yticks([])
+
+                    if nClass1 == 0:
+                        axes[nClass1, nClass2].set_title(class2, fontsize=20)
+                    if nClass2 == 0:
+                        axes[nClass1, nClass2].set_ylabel(class1, fontsize=20, rotation=90)
+
+
+                    nClass2 += 1
+                nClass1 += 1
+                nClass2 = 0
+
+    plt.tight_layout()
+    plt.show()
+
+
+
+# def main():
+#     print("starting relevancy calculation")
+
+# if __name__ == "__main__":
+#     main()

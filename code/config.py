@@ -21,6 +21,5 @@ relevancyOperations = {
     "mean" : False,
     "median" : True,
     "std" : False,
-    "max" : False,
-    "consistency" : False
+    "max" : False
 }

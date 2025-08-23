@@ -138,7 +138,7 @@ def visualizeAttentionMap(attentionMapDict, pathImages, saveImages = False):
         if saveImages:
             savePath = os.path.join(resultsFolder, f"{imageName}_attentionMap.png")
             plt.savefig(savePath, dpi = 100, bbox_inches='tight')
-            print(f"image {savePath} was saved")
+            #print(f"image {savePath} was saved")
             plt.close()
         else:
             plt.show()
@@ -176,7 +176,7 @@ def visualizeRelevancyMap(relevancyMapDict, pathImages, saveImages = False):
         if saveImages:
             savePath = os.path.join(resultsFolder, f"{imageName}_relevancyMap.png")
             plt.savefig(savePath, dpi = 100, bbox_inches='tight')
-            print(f"image {savePath} was saved")
+            #print(f"image {savePath} was saved")
             plt.close()
         else:
             plt.show()
@@ -197,19 +197,30 @@ def combineRelevancyMaps(mapDict):
             if indivClass in indivKey:
                 relevancies[indivClass].append(indivEntry)
 
-    for i in relevancies:
+    classSummaries = {
+        "mean": {name: None for name in classes},
+        "median": {name: None for name in classes},
+        "std": {name: None for name in classes},
+        "max": {name: None for name in classes},
+    }
+    
+    for className in relevancies:
         if relevancyOperations["mean"]:
-            mean = np.mean(np.stack(relevancies[i], axis=0), axis=0)
-            saveHeatmap(mean, f"{i}_mean")
+            mean = np.mean(np.stack(relevancies[className], axis=0), axis=0)
+            classSummaries["mean"][className] = mean
+            saveHeatmap(mean, f"{className}_mean")
         if relevancyOperations["median"]:
-            median = np.median(np.stack(relevancies[i], axis=0), axis=0)
-            saveHeatmap(median, f"{i}_median")
+            median = np.median(np.stack(relevancies[className], axis=0), axis=0)
+            classSummaries["median"][className] = median
+            saveHeatmap(median, f"{className}_median")
         if relevancyOperations["std"]:
-            std = np.std(np.stack(relevancies[i], axis=0), axis=0)
-            saveHeatmap(std, f"{i}_std")
+            std = np.std(np.stack(relevancies[className], axis=0), axis=0)
+            classSummaries["std"][className] = std
+            saveHeatmap(std, f"{className}_std")
         if relevancyOperations.get("max", False):
-            maxArray = np.max(np.stack(relevancies[i], axis=0), axis=0)
-            saveHeatmap(maxArray, f"{i}_max")
+            maxArray = np.max(np.stack(relevancies[className], axis=0), axis=0)
+            classSummaries["max"][className] = maxArray
+            saveHeatmap(maxArray, f"{className}_max")
 
     allClasses = []
     for className, relevancyList in relevancies.items():
@@ -231,12 +242,9 @@ def combineRelevancyMaps(mapDict):
         maxAll = np.max(allClasses, axis=0)
         saveHeatmap(maxAll, "allClasses_max")
     
-
     print(f"Total relevancy maps across all classes: {len(allClasses)}")
 
-    print(relevancies)
-
-    return
+    return classSummaries
 
 def main():
     print("main")
