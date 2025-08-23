@@ -5,7 +5,7 @@ import torch
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
-from config import relevancyOperations, cmapType, resultsFolder
+from config import relevancyOperations, cmapType, resultsFolder, topPercentile, lowPercentile
 
 def combineAttentionWeight(weights, features, labels, attention, tokens):
     relevancyMaps = {}
@@ -74,14 +74,27 @@ def relevancySubstractions(classRelevancies):
         nClass1 = 0
         nClass2 = 0
         if isEnabled and operation in classRelevancies:
+            allClasses = list(classRelevancies[operation].keys())
+            
             for class1 in classRelevancies[operation]:
                 for class2 in classRelevancies[operation]:
-                    if class1 == class2:
-                        result = classRelevancies[operation][class1]
+                    if class1 == class2:# One vs Rest case: current class vs average of all others
+                        otherClasses = [cls for cls in allClasses if cls != class1]
+                        if otherClasses:
+                            othersAvg = np.mean([classRelevancies[operation][cls] for cls in otherClasses], axis=0)
+                            result = classRelevancies[operation][class1] - othersAvg
                     else:
                         result = classRelevancies[operation][class1] - classRelevancies[operation][class2]
 
-                    im = axes[nClass1, nClass2].imshow(result, cmap=cmapType)
+                    #top bottom percent filter
+                    resultFiltered = applyPercentileMask(result)
+                    
+                    # Use symmetric normalization to ensure 0 maps to white
+                    vmax = np.max(np.abs(resultFiltered[resultFiltered != 0]))  # Exclude the 0 values
+                    vmin = -vmax
+                    
+                    im = axes[nClass1, nClass2].imshow(resultFiltered, cmap=cmapType, 
+                                                       vmin=vmin, vmax=vmax)
                     axes[nClass1, nClass2].set_xticks([])
                     axes[nClass1, nClass2].set_yticks([])
 
@@ -104,7 +117,16 @@ def relevancySubstractions(classRelevancies):
     plt.savefig(savePath, dpi=100, bbox_inches='tight')
     #plt.show()
 
+def applyPercentileMask(image):
+    topThreshold = np.percentile(image, 100 - topPercentile)
+    bottomThreshold = np.percentile(image, lowPercentile)
 
+    mask = (image >= topThreshold) | (image <= bottomThreshold) #create combined mask
+
+    result = image.copy()
+    result[~mask] = 0  #all else = 0
+    
+    return result
 
 # def main():
 #     print("starting relevancy calculation")

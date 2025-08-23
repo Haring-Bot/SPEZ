@@ -56,6 +56,7 @@ def main():
     skfold = StratifiedKFold(n_splits=nFolds, shuffle=True, random_state=32)
 
     allRelevancyMaps = {}
+    totalErrors = []
 
     for fold, (trainIDs, valIDs) in enumerate(skfold.split(featureArrayV, labelArrayV)):
         trainFeatures = featureArrayV[trainIDs].tolist()
@@ -68,7 +69,9 @@ def main():
         valAttention = {img: attentionMapV[img] for img in valImages}
         valTokens = {img: tokenDictV[img] for img in valImages}
     
-        accuracy, weights = SVM.main(trainFeatures, trainLabels, valFeatures, valLabels)
+        accuracy, weights, errors = SVM.main(trainFeatures, trainLabels, valFeatures, valLabels)
+        for error in errors:
+            totalErrors.append(error)
 
         relevancyMap = relevancy.combineAttentionWeight(weights, valFeatures, valLabels, valAttention, valTokens)
 
@@ -79,13 +82,14 @@ def main():
         foldAccuracies.append(accuracy)
         allRelevancyMaps |= relevancyMap
 
-    print(allRelevancyMaps.keys())
     classRelevancies = visualize.combineRelevancyMaps(allRelevancyMaps)
 
     relevancy.relevancySubstractions(classRelevancies)
 
     meanAccuracy = np.mean(foldAccuracies)      
     print(f"the mean accuracy is {meanAccuracy * 100}%")
+    print("Errors were: pred/ truth")
+    print(totalErrors)
 
     print("code finished")
 

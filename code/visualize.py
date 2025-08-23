@@ -22,7 +22,7 @@ def visualizeAttentionMap(attentionMapDict, pathImages, saveImages = False):
     yMax = 800
     aspectRatio = yMax / xMax
     
-    print("starting to create attention map")
+    #print("starting to create attention map")
 
     def addImage(ax, img, x, y, scale = 1.0, title = "", titleOffset = 50):
         imageBox = OffsetImage(img, zoom = scale)
@@ -144,7 +144,7 @@ def visualizeAttentionMap(attentionMapDict, pathImages, saveImages = False):
             plt.show()
 
 def visualizeRelevancyMap(relevancyMapDict, pathImages, saveImages = False):
-    print("starting creating relevancyMap")
+    #print("starting creating relevancyMap")
     for imageName, relevancyMap in relevancyMapDict.items():
         fishImage = mpimg.imread(os.path.join(pathImages, imageName))
 

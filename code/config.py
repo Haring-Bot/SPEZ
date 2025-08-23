@@ -12,7 +12,8 @@ svmRandomSate = 42
 #visualization
 cutoffWeightAttention = 0.01
 transparencyAboveCutoff = 0.6
-cmapType = "jet"
+#cmapType = "jet"
+cmapType = "seismic"
 resultsFolder = "../results"
 #resultsFolder = "../results animals"
 
@@ -23,3 +24,5 @@ relevancyOperations = {
     "std" : False,
     "max" : False
 }
+topPercentile = 10
+lowPercentile = 10
