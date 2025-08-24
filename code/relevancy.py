@@ -70,7 +70,9 @@ def relevancySubstractions(classRelevancies):
         for j in range(6):
             axes[i, j] = fig.add_subplot(gs[i+1, j])
     
-    im = None
+    # Variables to track vmin/vmax for consistent colorbar
+    global_vmin = float('inf')
+    global_vmax = float('-inf')
     
     for operation, isEnabled in relevancyOperations.items():
         nClass1 = 0
@@ -94,11 +96,16 @@ def relevancySubstractions(classRelevancies):
                     # Use symmetric normalization to ensure 0 maps to white
                     vmax = np.max(np.abs(resultFiltered[resultFiltered != 0]))  # Exclude the 0 values
                     vmin = -vmax
+                    
+                    # Track global min/max for colorbar
+                    global_vmin = min(global_vmin, vmin)
+                    global_vmax = max(global_vmax, vmax)
 
                     fishImagePath = "../data/oreochromis niloticus_modified.png"
                     combinedImage = visualize.overlayFishWithRelevancy(fishImagePath, resultFiltered, vmin, vmax, 0.5)
                     
-                    im = axes[nClass1, nClass2].imshow(combinedImage)
+                    # Display the overlay image
+                    axes[nClass1, nClass2].imshow(combinedImage)
                     axes[nClass1, nClass2].set_xticks([])
                     axes[nClass1, nClass2].set_yticks([])
 
@@ -111,10 +118,15 @@ def relevancySubstractions(classRelevancies):
                 nClass1 += 1
                 nClass2 = 0
     
-    #colorbar
-    if im is not None:
-        cbar_ax = fig.add_subplot(gs[1:7, 6])
-        fig.colorbar(im, cax=cbar_ax)
+    # Create proper colorbar using ScalarMappable
+    cbar_ax = fig.add_subplot(gs[1:7, 6])
+    cmap = plt.cm.get_cmap(cmapType)
+    norm = plt.Normalize(vmin=global_vmin, vmax=global_vmax)
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+    sm.set_array([])
+    
+    cbar = fig.colorbar(sm, cax=cbar_ax)
+    cbar.set_label('Relevancy Difference', rotation=270, labelpad=15)
     
     plt.tight_layout()
     savePath = os.path.join(resultsFolder, "summary", "subtractive_relevancyMap.png")

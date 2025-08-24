@@ -1,6 +1,6 @@
 #general
 setTypes = ["train", "test", "validation"]
-classes = ["Chamo", "Hawassa", "Koka", "Lan", "Tana", "Ziway"]
+classes = ["Chamo", "Hawassa", "Koka", "Langano", "Tana", "Ziway"]
 pathImages = "../data/images"
 #classes = ["Bear", "Bird", "Cat", "Cow", "Deer", "Dog", "Dolphin", "Elephant", "Giraffe", "Horse", "Kangaroo", "Lion", "Panda", "Tiger", "Zebra"]
 
@@ -25,5 +25,8 @@ relevancyOperations = {
     "std" : False,
     "max" : False
 }
+#summarized Relevancy
+percentile = 10
+#Subtractive Relevancy
 topPercentile = 10
 lowPercentile = 0

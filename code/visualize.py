@@ -6,7 +6,7 @@ from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 from matplotlib import cm
 from skimage.transform import resize
 
-from config import cutoffWeightAttention, transparencyAboveCutoff, cmapType, resultsFolder, classes, relevancyOperations, pathImages
+from config import cutoffWeightAttention, transparencyAboveCutoff, cmapType, resultsFolder, classes, relevancyOperations, pathImages, percentile
 
 def boxCoordinates(i, xLim, yLim, rows, cols):
     offsetX = xLim / cols
@@ -182,14 +182,48 @@ def visualizeRelevancyMap(relevancyMapDict, saveImages = False):
             plt.show()
 
 def combineRelevancyMaps(mapDict):
-    def saveHeatmap(array, name):
+    def saveHeatmap(array, className, operationName):
+        fishImagePath = os.path.join(pathImages, f"{className}01.jpg")
+        if className == "allClasses":
+            fishImagePath = "../data/oreochromis niloticus_modified.png"
+        
         savePath = os.path.join(resultsFolder, "summary")
-        plt.figure(figsize=(6, 6))
-        plt.imshow(array, cmap=cmapType)
-        plt.axis("off")
-        plt.colorbar()
-        plt.savefig(os.path.join(savePath, f"{name}RelevancyMap.png"))
-        plt.close()
+        
+        # Filter to show only top X% of relevancies
+        array_filtered = array.copy()
+        threshold = np.percentile(np.abs(array_filtered[array_filtered != 0]), 100-percentile)
+        array_filtered[np.abs(array_filtered) < threshold] = 0  #all else = 0
+        
+        if os.path.exists(fishImagePath):
+            vmax = np.max(np.abs(array_filtered[array_filtered != 0])) if np.any(array_filtered != 0) else 1
+            vmin = -vmax
+            overlayImage = overlayFishWithRelevancy(fishImagePath, array_filtered, vmin, vmax, 0.5)
+            
+            fig, ax = plt.subplots(figsize=(8, 6))
+            ax.imshow(overlayImage)
+            ax.axis("off")
+            
+            cmap = plt.cm.get_cmap(cmapType)
+            norm = plt.Normalize(vmin=vmin, vmax=vmax)
+            sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+            sm.set_array([])  # Empty array for the mappable
+            
+            cbar = plt.colorbar(sm, ax=ax, shrink=0.8)
+            cbar.set_label('Relevancy (Top 10%)', rotation=270, labelpad=15)
+            
+            plt.savefig(os.path.join(savePath, f"{className}_{operationName}_RelevancyMap.png"), 
+                       bbox_inches='tight', dpi=100)
+            plt.close()
+        else:
+            # Fallback: regular heatmap without overlay
+            plt.figure(figsize=(6, 6))
+            vmax = np.max(np.abs(array_filtered[array_filtered != 0])) if np.any(array_filtered != 0) else 1
+            vmin = -vmax
+            im = plt.imshow(array_filtered, cmap=cmapType, vmin=vmin, vmax=vmax)
+            plt.axis("off")
+            plt.colorbar(im)
+            plt.savefig(os.path.join(savePath, f"{className}_{operationName}_RelevancyMap.png"))
+            plt.close()
     
     relevancies = {name: [] for name in classes}
     for indivKey, indivEntry in mapDict.items():
@@ -208,19 +242,19 @@ def combineRelevancyMaps(mapDict):
         if relevancyOperations["mean"]:
             mean = np.mean(np.stack(relevancies[className], axis=0), axis=0)
             classSummaries["mean"][className] = mean
-            saveHeatmap(mean, f"{className}_mean")
+            saveHeatmap(mean, className, "mean")
         if relevancyOperations["median"]:
             median = np.median(np.stack(relevancies[className], axis=0), axis=0)
             classSummaries["median"][className] = median
-            saveHeatmap(median, f"{className}_median")
+            saveHeatmap(median, className, "median")
         if relevancyOperations["std"]:
             std = np.std(np.stack(relevancies[className], axis=0), axis=0)
             classSummaries["std"][className] = std
-            saveHeatmap(std, f"{className}_std")
+            saveHeatmap(std, className, "std")
         if relevancyOperations.get("max", False):
             maxArray = np.max(np.stack(relevancies[className], axis=0), axis=0)
             classSummaries["max"][className] = maxArray
-            saveHeatmap(maxArray, f"{className}_max")
+            saveHeatmap(maxArray, className, "max")
 
     allClasses = []
     for className, relevancyList in relevancies.items():
@@ -228,19 +262,19 @@ def combineRelevancyMaps(mapDict):
 
     if relevancyOperations.get("mean", False):
         meanAll = np.mean(allClasses, axis=0)
-        saveHeatmap(meanAll, "allClasses_mean")
+        saveHeatmap(meanAll, "allClasses", "mean")
 
     if relevancyOperations.get("median", False):
         medianAll = np.median(allClasses, axis=0)
-        saveHeatmap(medianAll, "allClasses_median")
+        saveHeatmap(medianAll, "allClasses", "median")
 
     if relevancyOperations.get("std", False):
         stdAll = np.std(allClasses, axis=0)
-        saveHeatmap(stdAll, "allClasses_std")
+        saveHeatmap(stdAll, "allClasses", "std")
 
     if relevancyOperations.get("max", False):
         maxAll = np.max(allClasses, axis=0)
-        saveHeatmap(maxAll, "allClasses_max")
+        saveHeatmap(maxAll, "allClasses", "max")
     
     print(f"Total relevancy maps across all classes: {len(allClasses)}")
 
@@ -248,21 +282,44 @@ def combineRelevancyMaps(mapDict):
 
 def overlayFishWithRelevancy(fishImagePath, resultFiltered, vmin, vmax, alpha=0.5):
     fishImage = mpimg.imread(fishImagePath)
-    
-    if fishImage.shape[-1] == 4:
-        fishImage = fishImage[:, :, :3]
-    
-    fig, ax = plt.subplots(figsize=(10, 10))
-    ax.axis('off')
-    ax.imshow(fishImage)
-    
-    im = ax.imshow(resultFiltered, cmap=cmapType, vmin=vmin, vmax=vmax, alpha=alpha)
+    # Handle different image formats properly
+    if fishImage.ndim == 2:  # Already grayscale
+        fishImage = np.stack([fishImage] * 3, axis=-1)  # Convert to RGB
+    elif fishImage.ndim == 3:
+        if fishImage.shape[2] == 1:  # Grayscale with extra dimension
+            fishImage = np.squeeze(fishImage, axis=2)
+            fishImage = np.stack([fishImage] * 3, axis=-1)
+        elif fishImage.shape[2] == 4:  # RGBA
+            fishImage = fishImage[:, :, :3]
+        elif fishImage.shape[2] == 3:  # Already RGB
+            pass  # Do nothing
+        else:
+            print(f"Warning: Unexpected image shape {fishImage.shape}")
+            fishImage = fishImage[:, :, :3]
 
-    fig.canvas.draw()
-    buf = np.array(fig.canvas.renderer.buffer_rgba())[:, :, :3]
-    plt.close(fig)
     
-    return buf
+    if fishImage.max() > 1: #normalize
+        fishImage = fishImage / 255.0
+    
+    cmap = plt.cm.get_cmap(cmapType)
+    
+    zero_mask = (resultFiltered == 0)   #zero values remain unchaged
+    
+    norm_relevancy = (resultFiltered - vmin) / (vmax - vmin)    #normalize relevancy
+    norm_relevancy = np.clip(norm_relevancy, 0, 1)
+    
+    colored_relevancy = cmap(norm_relevancy)[:, :, :3]  #apply relevancy
+    
+    alpha_mask = np.ones_like(resultFiltered) * alpha
+    alpha_mask[zero_mask] = 0  #zero values = transparent
+    
+    #combine masks
+    combined = fishImage * (1 - alpha_mask[:, :, np.newaxis]) + colored_relevancy * alpha_mask[:, :, np.newaxis]
+    
+    # Ensure values are in valid range
+#    combined = np.clip(combined, 0, 1)
+    
+    return combined
 
 def main():
     print("main")
