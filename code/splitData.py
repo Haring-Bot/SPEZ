@@ -3,9 +3,9 @@ import math
 import random
 import shutil
 
-from config import classes, setTypes
+from config import classes, setTypes, pathImages
 
-def main(pathAllImages, pTrain = 0.8, pTest = 0.1, skipBalancing=False):
+def main(pTrain = 0.8, pTest = 0.1, skipBalancing=False):
     if pTrain+ pTest > 1:
         print("pTrain and pTest in the splitData function are larger than 1. Please adjust. \n !!Script terminated!!")
         return 0
@@ -14,12 +14,12 @@ def main(pathAllImages, pTrain = 0.8, pTest = 0.1, skipBalancing=False):
     else:
         print("starting to split the data")
     
-    #pathAllImages = "../data/images"
+    #pathImages = "../data/images"
 
 
     allTestFolderFull = False
     while allTestFolderFull == False:
-        allImages = os.listdir(pathAllImages)
+        allImages = os.listdir(pathImages)
         amountImages = len(allImages)
         amountTrainImages = math.floor(amountImages * pTrain)
         amountTestImages = math.floor(amountImages * pTest)
@@ -67,16 +67,16 @@ def main(pathAllImages, pTrain = 0.8, pTest = 0.1, skipBalancing=False):
         for classType in classes:
             os.makedirs(os.path.join(setTypeP, classType))
 
-    for image in os.listdir(pathAllImages):
+    for image in os.listdir(pathImages):
         for classType in classes:
             if classType in image:
                 imageType = classType
 
         if image in testImages:
-            shutil.copy(pathAllImages + "/" + image, testF + "/" + imageType)
+            shutil.copy(pathImages + "/" + image, testF + "/" + imageType)
         if image in trainImages:
-            shutil.copy(pathAllImages + "/" + image, trainF + "/" +  imageType)
+            shutil.copy(pathImages + "/" + image, trainF + "/" +  imageType)
         if image in validationImages:
-            shutil.copy(pathAllImages + "/" + image, validationF + "/" +  imageType)
+            shutil.copy(pathImages + "/" + image, validationF + "/" +  imageType)
 
     return os.path.join(datasetF, "train"), os.path.join(datasetF, "validation")

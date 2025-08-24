@@ -4,8 +4,10 @@ import torch.nn.functional as F
 import torch
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+from matplotlib import image as mpimg
+import visualize
 
-from config import relevancyOperations, cmapType, resultsFolder, topPercentile, lowPercentile
+from config import relevancyOperations, cmapType, resultsFolder, topPercentile, lowPercentile, pathImages
 
 def combineAttentionWeight(weights, features, labels, attention, tokens):
     relevancyMaps = {}
@@ -92,9 +94,11 @@ def relevancySubstractions(classRelevancies):
                     # Use symmetric normalization to ensure 0 maps to white
                     vmax = np.max(np.abs(resultFiltered[resultFiltered != 0]))  # Exclude the 0 values
                     vmin = -vmax
+
+                    fishImagePath = "../data/oreochromis niloticus_modified.png"
+                    combinedImage = visualize.overlayFishWithRelevancy(fishImagePath, resultFiltered, vmin, vmax, 0.5)
                     
-                    im = axes[nClass1, nClass2].imshow(resultFiltered, cmap=cmapType, 
-                                                       vmin=vmin, vmax=vmax)
+                    im = axes[nClass1, nClass2].imshow(combinedImage)
                     axes[nClass1, nClass2].set_xticks([])
                     axes[nClass1, nClass2].set_yticks([])
 

@@ -9,12 +9,12 @@ import os
 import numpy as np
 from sklearn.model_selection import StratifiedKFold
 
+from config import pathImages
+
 
 def main():
     doSaveModel = False
     doLoadModel = True
-    pathImages = "../data/images"
-    #pathImages = "../data/animal_images"
     saveImages = True
     pathModel = "default"
     nFolds = 5
@@ -24,7 +24,7 @@ def main():
     if doLoadModel:
         featuresT, labelsT, mappingT, attentionMapT, tokenDictT, featuresV, labelsV, mappingV, attentionMapV, tokenDictV = utils.loadModel(pathModel)
     else:
-        pathTrain, pathValidation = splitData.main(pathImages, pTrain=0.8, pTest=0, skipBalancing=True)
+        pathTrain, pathValidation = splitData.main(pTrain=0.8, pTest=0, skipBalancing=True)
         pathImagesExtraction = pathImages
         #if pathImages == "../data/images": pathImagesExtraction = "../data/images sorted"
         #if pathImages == "../data/animal_images": pathImagesExtraction = "../data/animal_images_sorted"
@@ -76,8 +76,8 @@ def main():
         relevancyMap = relevancy.combineAttentionWeight(weights, valFeatures, valLabels, valAttention, valTokens)
 
         if saveImages:
-            visualize.visualizeAttentionMap(valAttention, pathImages, True)
-            visualize.visualizeRelevancyMap(relevancyMap, pathImages, True)
+            visualize.visualizeAttentionMap(valAttention,True)
+            visualize.visualizeRelevancyMap(relevancyMap,True)
 
         foldAccuracies.append(accuracy)
         allRelevancyMaps |= relevancyMap

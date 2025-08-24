@@ -6,7 +6,7 @@ from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 from matplotlib import cm
 from skimage.transform import resize
 
-from config import cutoffWeightAttention, transparencyAboveCutoff, cmapType, resultsFolder, classes, relevancyOperations
+from config import cutoffWeightAttention, transparencyAboveCutoff, cmapType, resultsFolder, classes, relevancyOperations, pathImages
 
 def boxCoordinates(i, xLim, yLim, rows, cols):
     offsetX = xLim / cols
@@ -17,7 +17,39 @@ def boxCoordinates(i, xLim, yLim, rows, cols):
 
     return goalX, goalY
 
-def visualizeAttentionMap(attentionMapDict, pathImages, saveImages = False):
+def combineFishHeatmap(attentionMap, fishImage):
+    background_rgb = fishImage/ 255  # already (H, W, 3)
+    alphaBg = np.ones((background_rgb.shape[0], background_rgb.shape[1], 1))
+    background = np.dstack([background_rgb, alphaBg])
+
+    attentionMap = resize(attentionMap, (background.shape[0], background.shape[1]), mode='reflect', anti_aliasing=True)
+
+    alphaMask = np.where(attentionMap > cutoffWeightAttention, transparencyAboveCutoff, 0)
+
+    cmap = cm.get_cmap(cmapType)
+    overlayRGB = cmap(attentionMap)[:, :, :3]
+
+    overlay = np.dstack([overlayRGB, alphaMask])
+    #print(overlay)
+
+    alphaO = overlay[:, :, 3:4]
+    alphaBg = background[:, :, 3:4]
+
+    outAlpha = alphaO + alphaBg * (1 - alphaO)
+
+    outRGB = (overlay[:, :, :3] * alphaO + background[:, :, :3] * alphaBg * (1 - alphaO)) / np.clip(outAlpha, 1e-6, 1)
+
+    combined = np.dstack([outRGB, outAlpha])
+
+    combined = np.clip(combined, 0, 1)
+
+    # print("new combined")
+    # print(combined)
+
+
+    return combined
+
+def visualizeAttentionMap(attentionMapDict, saveImages = False):
     xMax = 1400
     yMax = 800
     aspectRatio = yMax / xMax
@@ -47,38 +79,6 @@ def visualizeAttentionMap(attentionMapDict, pathImages, saveImages = False):
         plt.axis('off')
         plt.title(name)
         plt.show()
-
-    def combineFishHeatmap(attentionMap):
-        background_rgb = fishImage/ 255  # already (H, W, 3)
-        alphaBg = np.ones((background_rgb.shape[0], background_rgb.shape[1], 1))
-        background = np.dstack([background_rgb, alphaBg])
-
-        attentionMap = resize(attentionMap, (background.shape[0], background.shape[1]), mode='reflect', anti_aliasing=True)
-
-        alphaMask = np.where(attentionMap > cutoffWeightAttention, transparencyAboveCutoff, 0)
-
-        cmap = cm.get_cmap(cmapType)
-        overlayRGB = cmap(attentionMap)[:, :, :3]
-
-        overlay = np.dstack([overlayRGB, alphaMask])
-        #print(overlay)
-
-        alphaO = overlay[:, :, 3:4]
-        alphaBg = background[:, :, 3:4]
-
-        outAlpha = alphaO + alphaBg * (1 - alphaO)
-
-        outRGB = (overlay[:, :, :3] * alphaO + background[:, :, :3] * alphaBg * (1 - alphaO)) / np.clip(outAlpha, 1e-6, 1)
-
-        combined = np.dstack([outRGB, outAlpha])
-
-        combined = np.clip(combined, 0, 1)
-
-        # print("new combined")
-        # print(combined)
-
-
-        return combined
         
     for imageName, attentionMap in attentionMapDict.items():
         headNo = 0
@@ -103,7 +103,7 @@ def visualizeAttentionMap(attentionMapDict, pathImages, saveImages = False):
             max_position = np.unravel_index(np.argmax(singleMap), singleMap.shape)
             #print(f"highestPixel at position {max_position} with a value of {highestPixel}")
 
-            image = combineFishHeatmap(singleMap)
+            image = combineFishHeatmap(singleMap, fishImage)
             
             attentionImages[headNo] = image
             headNo = headNo + 1
@@ -136,14 +136,14 @@ def visualizeAttentionMap(attentionMapDict, pathImages, saveImages = False):
         ax.axis("off")
 
         if saveImages:
-            savePath = os.path.join(resultsFolder, f"{imageName}_attentionMap.png")
+            savePath = os.path.join(resultsFolder, "attentionMap", f"{imageName}_attentionMap.png")
             plt.savefig(savePath, dpi = 100, bbox_inches='tight')
             #print(f"image {savePath} was saved")
             plt.close()
         else:
             plt.show()
 
-def visualizeRelevancyMap(relevancyMapDict, pathImages, saveImages = False):
+def visualizeRelevancyMap(relevancyMapDict, saveImages = False):
     #print("starting creating relevancyMap")
     for imageName, relevancyMap in relevancyMapDict.items():
         fishImage = mpimg.imread(os.path.join(pathImages, imageName))
@@ -174,7 +174,7 @@ def visualizeRelevancyMap(relevancyMapDict, pathImages, saveImages = False):
             transform=ax.transAxes   # use relative axes coordinates
         )
         if saveImages:
-            savePath = os.path.join(resultsFolder, f"{imageName}_relevancyMap.png")
+            savePath = os.path.join(resultsFolder, "relevancyMap", f"{imageName}_relevancyMap.png")
             plt.savefig(savePath, dpi = 100, bbox_inches='tight')
             #print(f"image {savePath} was saved")
             plt.close()
@@ -245,6 +245,24 @@ def combineRelevancyMaps(mapDict):
     print(f"Total relevancy maps across all classes: {len(allClasses)}")
 
     return classSummaries
+
+def overlayFishWithRelevancy(fishImagePath, resultFiltered, vmin, vmax, alpha=0.5):
+    fishImage = mpimg.imread(fishImagePath)
+    
+    if fishImage.shape[-1] == 4:
+        fishImage = fishImage[:, :, :3]
+    
+    fig, ax = plt.subplots(figsize=(10, 10))
+    ax.axis('off')
+    ax.imshow(fishImage)
+    
+    im = ax.imshow(resultFiltered, cmap=cmapType, vmin=vmin, vmax=vmax, alpha=alpha)
+
+    fig.canvas.draw()
+    buf = np.array(fig.canvas.renderer.buffer_rgba())[:, :, :3]
+    plt.close(fig)
+    
+    return buf
 
 def main():
     print("main")
