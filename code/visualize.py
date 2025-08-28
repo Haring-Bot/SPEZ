@@ -91,12 +91,26 @@ def visualizeAttentionMap(attentionMapDict, saveImages = False):
         
         if summary:
             fishImage = mpimg.imread(sampleImagePath)
+            bigFishImage = mpimg.imread("../data/fish_x10_PTI.png")
+            scale = 0.15
         else:
-            fishImage = mpimg.imread(os.path.join(pathImages, imageName))
-        if fishImage.ndim == 2:       #if greyscale
-            fishImage = np.stack((fishImage,)*3, axis=-1)
+            bigFishImage = mpimg.imread(os.path.join(pathImages, imageName))  # Load original for display
+            scale = 1.5
+
+        # Handle grayscale conversion for bigFishImage
+        if bigFishImage.ndim == 2:
+            bigFishImage = np.stack((bigFishImage,)*3, axis=-1)
 
         for head in attentionMap:
+            # Load fresh copy for each head processing
+            if summary:
+                fishImage = mpimg.imread(sampleImagePath)
+            else:
+                fishImage = mpimg.imread(os.path.join(pathImages, imageName))
+            
+            if fishImage.ndim == 2:
+                fishImage = np.stack((fishImage,)*3, axis=-1)
+                
             for i in range(len(head)):
                 if head[i] < cutoffWeightAttention:
                     head[i] = 0
@@ -131,7 +145,7 @@ def visualizeAttentionMap(attentionMapDict, saveImages = False):
             backgroundcolor = "white",
             weight = "bold"
         )
-        addImage(ax, fishImage,200 , yMax/2 - 122, 1.5)
+        addImage(ax, bigFishImage,200 , yMax/2 - 122, scale)
 
         for i in range(len(attentionImages)):
             x, y = boxCoordinates(i, 900, 830, 3, 4)
