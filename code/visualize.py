@@ -18,7 +18,10 @@ def boxCoordinates(i, xLim, yLim, rows, cols):
     return goalX, goalY
 
 def combineFishHeatmap(attentionMap, fishImage):
-    background_rgb = fishImage/ 255  # already (H, W, 3)
+    if fishImage.max() > 1:
+        background_rgb = fishImage/ 255  # already (H, W, 3)
+    else:
+        background_rgb = fishImage
     alphaBg = np.ones((background_rgb.shape[0], background_rgb.shape[1], 1))
     background = np.dstack([background_rgb, alphaBg])
 
@@ -83,8 +86,13 @@ def visualizeAttentionMap(attentionMapDict, saveImages = False):
     for imageName, attentionMap in attentionMapDict.items():
         headNo = 0
         attentionImages = {}
-
-        fishImage = mpimg.imread(os.path.join(pathImages, imageName))
+        summary = False
+        if next(iter(attentionMapDict.keys())) == "summary": summary=True       #check for average visualization
+        
+        if summary:
+            fishImage = mpimg.imread("../data/oreochromis niloticus_modified.png")
+        else:
+            fishImage = mpimg.imread(os.path.join(pathImages, imageName))
         if fishImage.ndim == 2:       #if greyscale
             fishImage = np.stack((fishImage,)*3, axis=-1)
 
@@ -209,7 +217,7 @@ def combineRelevancyMaps(mapDict):
             sm.set_array([])  # Empty array for the mappable
             
             cbar = plt.colorbar(sm, ax=ax, shrink=0.8)
-            cbar.set_label('Relevancy (Top 10%)', rotation=270, labelpad=15)
+            cbar.set_label(f"Relevancy (Top {percentile}%)", rotation=270, labelpad=15)
             
             plt.savefig(os.path.join(savePath, f"{className}_{operationName}_RelevancyMap.png"), 
                        bbox_inches='tight', dpi=100)
@@ -320,6 +328,27 @@ def overlayFishWithRelevancy(fishImagePath, resultFiltered, vmin, vmax, alpha=0.
 #    combined = np.clip(combined, 0, 1)
     
     return combined
+
+def averageAttentionMap(attentionDict):
+    amountHeads = len(next(iter(attentionDict.values())))
+    
+    heads = [[] for i in range(amountHeads)]
+
+    for imageName, attentionMap in attentionDict.items():
+        for headNo, head in enumerate(attentionMap):
+            heads[headNo].append(head)
+
+    averageHeads = []
+    for head in range(amountHeads):
+        if heads[head]:
+            averageHeads.append(np.median(heads[head], axis=0))
+        else:
+            averageHeads.append(None)
+
+    returnDict = {}
+    returnDict["summary"] = averageHeads
+
+    return returnDict
 
 def main():
     print("main")

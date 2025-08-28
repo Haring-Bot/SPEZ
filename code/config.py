@@ -26,7 +26,7 @@ relevancyOperations = {
     "max" : False
 }
 #summarized Relevancy
-percentile = 10
+percentile = 20
 #Subtractive Relevancy
 topPercentile = 10
 lowPercentile = 0

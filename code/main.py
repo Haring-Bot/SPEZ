@@ -52,6 +52,9 @@ def main():
     imageNames = list(attentionMapV.keys())
     foldAccuracies = []
 
+    averageAttention = visualize.averageAttentionMap(attentionMapV)
+    visualize.visualizeAttentionMap(averageAttention, True)
+
     # Ensure balanced class distribution across folds
     skfold = StratifiedKFold(n_splits=nFolds, shuffle=True, random_state=32)
 
