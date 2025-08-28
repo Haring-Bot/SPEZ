@@ -6,7 +6,7 @@ from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 from matplotlib import cm
 from skimage.transform import resize
 
-from config import cutoffWeightAttention, transparencyAboveCutoff, cmapType, resultsFolder, classes, relevancyOperations, pathImages, percentile
+from config import cutoffWeightAttention, transparencyAboveCutoff, cmapType, resultsFolder, classes, relevancyOperations, pathImages, percentile, sampleImagePath
 
 def boxCoordinates(i, xLim, yLim, rows, cols):
     offsetX = xLim / cols
@@ -90,7 +90,7 @@ def visualizeAttentionMap(attentionMapDict, saveImages = False):
         if next(iter(attentionMapDict.keys())) == "summary": summary=True       #check for average visualization
         
         if summary:
-            fishImage = mpimg.imread("../data/oreochromis niloticus_modified.png")
+            fishImage = mpimg.imread(sampleImagePath)
         else:
             fishImage = mpimg.imread(os.path.join(pathImages, imageName))
         if fishImage.ndim == 2:       #if greyscale
@@ -144,7 +144,10 @@ def visualizeAttentionMap(attentionMapDict, saveImages = False):
         ax.axis("off")
 
         if saveImages:
-            savePath = os.path.join(resultsFolder, "attentionMap", f"{imageName}_attentionMap.png")
+            if summary:
+                savePath = os.path.join(resultsFolder, "summary", f"{imageName}_attentionMap.png")
+            else:
+                savePath = os.path.join(resultsFolder, "attentionMap", f"{imageName}_attentionMap.png")
             plt.savefig(savePath, dpi = 100, bbox_inches='tight')
             #print(f"image {savePath} was saved")
             plt.close()
@@ -193,7 +196,7 @@ def combineRelevancyMaps(mapDict):
     def saveHeatmap(array, className, operationName):
         fishImagePath = os.path.join(pathImages, f"{className}01.jpg")
         if className == "allClasses":
-            fishImagePath = "../data/oreochromis niloticus_modified.png"
+            fishImagePath = sampleImagePath
         
         savePath = os.path.join(resultsFolder, "summary")
         

@@ -7,7 +7,7 @@ import matplotlib.gridspec as gridspec
 from matplotlib import image as mpimg
 import visualize
 
-from config import relevancyOperations, cmapType, resultsFolder, topPercentile, lowPercentile, pathImages
+from config import relevancyOperations, cmapType, resultsFolder, topPercentile, lowPercentile, pathImages, sampleImagePath
 
 def combineAttentionWeight(weights, features, labels, attention, tokens):
     relevancyMaps = {}
@@ -101,7 +101,7 @@ def relevancySubstractions(classRelevancies):
                     global_vmin = min(global_vmin, vmin)
                     global_vmax = max(global_vmax, vmax)
 
-                    fishImagePath = "../data/oreochromis niloticus_modified.png"
+                    fishImagePath = sampleImagePath
                     combinedImage = visualize.overlayFishWithRelevancy(fishImagePath, resultFiltered, vmin, vmax, 0.5)
                     
                     # Display the overlay image
@@ -126,7 +126,7 @@ def relevancySubstractions(classRelevancies):
     sm.set_array([])
     
     cbar = fig.colorbar(sm, cax=cbar_ax)
-    cbar.set_label('Relevancy Difference', rotation=270, labelpad=15)
+    cbar.set_label(f"Relevancy Difference Top{topPercentile}%", rotation=270, labelpad=15)
     
     plt.tight_layout()
     savePath = os.path.join(resultsFolder, "summary", "subtractive_relevancyMap.png")

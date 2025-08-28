@@ -17,6 +17,7 @@ cmapType = "jet"
 #cmapType = "seismic"
 resultsFolder = "../results"
 #resultsFolder = "../results animals"
+sampleImagePath = "../data/oreochromis niloticus_modified2.png"
 
 #analysis
 relevancyOperations = {
@@ -26,7 +27,7 @@ relevancyOperations = {
     "max" : False
 }
 #summarized Relevancy
-percentile = 20
+percentile = 10
 #Subtractive Relevancy
 topPercentile = 10
 lowPercentile = 0
