@@ -54,23 +54,36 @@ def relevancySubstractions(classRelevancies):
     
     fig = plt.figure(figsize=(17, 18))
     
-    gs = gridspec.GridSpec(7, 7, figure=fig, 
-                          height_ratios=[0.5, 1, 1, 1, 1, 1, 1],
-                          width_ratios=[1, 1, 1, 1, 1, 1, 0.25],
+    gs = gridspec.GridSpec(8, 8, figure=fig, 
+                          height_ratios=[0.3, 0.3, 1, 1, 1, 1, 1, 1],  # Added extra row at top
+                          width_ratios=[0.5, 1, 1, 1, 1, 1, 1, 0.25],  # Added extra column at left
                           hspace=0.05,  #vertical spacing
                           wspace=0.05)  #horizontal spacing
     
-    title_ax = fig.add_subplot(gs[0, :6]) 
+    title_ax = fig.add_subplot(gs[0, 1:7])  # Adjusted for new grid
     title_ax.text(0.5, 0.5, 'Subtractive Relevancy Maps', 
                   ha='center', va='center', fontsize=30, weight='bold')
     title_ax.axis('off')
     
+    # Y-axis label on the LEFT side
+    y_label_ax = fig.add_subplot(gs[2:8, 0])  # Left column, spanning main grid rows
+    y_label_ax.text(0.5, 0.5, 'Reference Classes A', 
+                    ha='center', va='center', fontsize=18, weight='bold', 
+                    rotation=90)
+    y_label_ax.axis('off')
+    
+    # X-axis label at the TOP RIGHT
+    x_label_ax = fig.add_subplot(gs[1, 1:7])  # Top row, spanning main grid columns
+    x_label_ax.text(0.5, 0.5, 'Subtracted Classes B', 
+                    ha='center', va='center', fontsize=18, weight='bold')
+    x_label_ax.axis('off')
+    
     axes = np.empty((6, 6), dtype=object)
     for i in range(6):
         for j in range(6):
-            axes[i, j] = fig.add_subplot(gs[i+1, j])
+            axes[i, j] = fig.add_subplot(gs[i+2, j+1])  # Adjusted for new grid layout
     
-    # Variables to track vmin/vmax for consistent colorbar
+    #for colorbar
     global_vmin = float('inf')
     global_vmax = float('-inf')
     
@@ -119,7 +132,7 @@ def relevancySubstractions(classRelevancies):
                 nClass2 = 0
     
     # Create proper colorbar using ScalarMappable
-    cbar_ax = fig.add_subplot(gs[1:7, 6])
+    cbar_ax = fig.add_subplot(gs[2:8, 7])  # Adjusted for new grid
     cmap = plt.cm.get_cmap(cmapType)
     norm = plt.Normalize(vmin=global_vmin, vmax=global_vmax)
     sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
