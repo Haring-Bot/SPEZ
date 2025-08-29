@@ -6,6 +6,7 @@ from datetime import datetime
 from sklearn.metrics import confusion_matrix, classification_report
 import matplotlib.pyplot as plt
 import seaborn as sns
+from matplotlib.colors import PowerNorm
 
 from config import classes, resultsFolder
 
@@ -90,15 +91,17 @@ def loadModel(path="default"):
         print(f"path {path} couldn't be found. Starting new training...")
         return None
     
-def confusionMatrix(truths, predictions):
+def confusionMatrix(truths, predictions, mission):
     cm = confusion_matrix(truths, predictions)
 
     plt.figure(figsize=(10, 8))
-    sns.heatmap(cm, annot = True, fmt="d", cmap = "Blues", xticklabels=classes, yticklabels=classes)
-    plt.title("Confusion Matrix")
+    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues",
+                norm=PowerNorm(gamma=0.5),  # Square root scaling to make low values more distinguishable
+                xticklabels=classes, yticklabels=classes)
+    plt.title(f"{mission} Confusion Matrix")
     plt.ylabel("True Label")
     plt.xlabel("Predicted Label")
     plt.tight_layout()
-    plt.savefig(os.path.join(resultsFolder, "summary" ,"confusionMatrix.png"), dpi=300, bbox_inches="tight")
-    print("============== classification report ==============")
+    plt.savefig(os.path.join(resultsFolder, "summary", f"{mission}_confusionMatrix.png"), dpi=300, bbox_inches="tight")
+    print(f"============== {mission} classification report ==============")
     print(classification_report(truths, predictions, target_names=classes))

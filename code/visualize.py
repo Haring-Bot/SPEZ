@@ -227,6 +227,18 @@ def combineRelevancyMaps(mapDict):
             fig, ax = plt.subplots(figsize=(8, 6))
             ax.imshow(overlayImage)
             ax.axis("off")
+
+            ax.text(
+                0.5, 1.05,               # x = middle, y = slightly above
+                className,
+                ha="center",
+                va="bottom",
+                color="black",
+                fontsize=20,
+                backgroundcolor="white",
+                weight="bold",
+                transform=ax.transAxes   # use relative axes coordinates
+            )
             
             cmap = plt.cm.get_cmap(cmapType)
             norm = plt.Normalize(vmin=vmin, vmax=vmax)

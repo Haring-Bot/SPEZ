@@ -13,8 +13,8 @@ from config import pathImages
 
 
 def main():
-    doSaveModel = True
-    doLoadModel = False
+    doSaveModel = False
+    doLoadModel = True
     saveImages = True
     pathModel = "default"
     nFolds = 5
@@ -49,7 +49,7 @@ def main():
     # Use validation data for cross-validation
     featureArrayV = np.array(featuresV)
     labelArrayV = np.array(labelsV)
-    imageNames = list(attentionMapV.keys())
+    imageNames = list(attentionMapT.keys())
     foldAccuracies = []
 
     averageAttention = visualize.averageAttentionMap(attentionMapV)
@@ -63,21 +63,21 @@ def main():
     allPredictions = []
     allTruths = []
 
-    for fold, (trainIDs, valIDs) in enumerate(skfold.split(featureArrayV, labelArrayV)):
-        trainFeatures = featureArrayV[trainIDs].tolist()
-        trainLabels = labelArrayV[trainIDs].tolist()
-        valFeatures = featureArrayV[valIDs].tolist()
-        valLabels = labelArrayV[valIDs].tolist()
+    for fold, (trainIDs, valIDs) in enumerate(skfold.split(featureArray, labelArray)):
+        trainFeatures = featureArray[trainIDs].tolist()
+        trainLabels = labelArray[trainIDs].tolist()
+        valFeatures = featureArray[valIDs].tolist()
+        valLabels = labelArray[valIDs].tolist()
 
         valImages = [imageNames[i] for i in valIDs]
 
-        valAttention = {img: attentionMapV[img] for img in valImages}
-        valTokens = {img: tokenDictV[img] for img in valImages}
+        valAttention = {img: attentionMapT[img] for img in valImages}
+        valTokens = {img: tokenDictT[img] for img in valImages}
     
         accuracy, weights, errors, predictions = SVM.main(trainFeatures, trainLabels, valFeatures, valLabels)
         for error in errors:
             totalErrors.append(error)
-        allPredictions.extend(predictions.tolist)
+        allPredictions.extend(predictions.tolist())
         allTruths.extend(valLabels)
 
         relevancyMap = relevancy.combineAttentionWeight(weights, valFeatures, valLabels, valAttention, valTokens)
@@ -93,12 +93,17 @@ def main():
 
     relevancy.relevancySubstractions(classRelevancies)
 
-    utils.confusionMatrix(allTruths, allPredictions)
+    utils.confusionMatrix(allTruths, allPredictions, "kFold")
 
     meanAccuracy = np.mean(foldAccuracies)      
-    print(f"the mean accuracy is {meanAccuracy * 100}%")
-    print("Errors were: pred/ truth")
+    print()
+    print(f"mean accuracy of the kfold: {meanAccuracy * 100}%")
+    print("Errors: pred/ truth")
     print(totalErrors)
+
+    #SVM with unseen validation iamges for unbiased results
+    finalAccuracy, finalWeights, finalErrors, finalPredictions = SVM.main(featuresT, labelsT, featuresV, labelsV)
+    utils.confusionMatrix(finalPredictions, labelsV, "final")
 
     print("code finished")
 
