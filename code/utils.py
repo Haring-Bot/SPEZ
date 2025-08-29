@@ -3,6 +3,13 @@ import pickle
 import re
 from datetime import datetime
 
+from sklearn.metrics import confusion_matrix, classification_report
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+from config import classes, resultsFolder
+
+
 def saveModel(featuresT, labelsT, mappingT, attentionMapT, tokenDictT, featuresV, labelsV, mappingV, attentionMapV, tokenDictV):
     date_str = datetime.now().strftime("%Y%m%d%H%M")
     saveFile = f"../models/model_{date_str}.pkl"
@@ -82,3 +89,16 @@ def loadModel(path="default"):
     else:
         print(f"path {path} couldn't be found. Starting new training...")
         return None
+    
+def confusionMatrix(truths, predictions):
+    cm = confusion_matrix(truths, predictions)
+
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(cm, annot = True, fmt="d", cmap = "Blues", xticklabels=classes, yticklabels=classes)
+    plt.title("Confusion Matrix")
+    plt.ylabel("True Label")
+    plt.xlabel("Predicted Label")
+    plt.tight_layout()
+    plt.savefig(os.path.join(resultsFolder, "summary" ,"confusionMatrix.png"), dpi=300, bbox_inches="tight")
+    print("============== classification report ==============")
+    print(classification_report(truths, predictions, target_names=classes))

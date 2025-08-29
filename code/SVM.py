@@ -37,7 +37,7 @@ def main(featuresTrain, labelsTrain, featuresTest, labelsTest):
     print(f"The SVM achieves an accuracy of {accuracy*100} %")
     #print(pred)
 
-    return accuracy, weightDict, errors
+    return accuracy, weightDict, errors, pred
 
 
 

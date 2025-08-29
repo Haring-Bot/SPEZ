@@ -13,8 +13,8 @@ from config import pathImages
 
 
 def main():
-    doSaveModel = False
-    doLoadModel = True
+    doSaveModel = True
+    doLoadModel = False
     saveImages = True
     pathModel = "default"
     nFolds = 5
@@ -60,6 +60,8 @@ def main():
 
     allRelevancyMaps = {}
     totalErrors = []
+    allPredictions = []
+    allTruths = []
 
     for fold, (trainIDs, valIDs) in enumerate(skfold.split(featureArrayV, labelArrayV)):
         trainFeatures = featureArrayV[trainIDs].tolist()
@@ -72,9 +74,11 @@ def main():
         valAttention = {img: attentionMapV[img] for img in valImages}
         valTokens = {img: tokenDictV[img] for img in valImages}
     
-        accuracy, weights, errors = SVM.main(trainFeatures, trainLabels, valFeatures, valLabels)
+        accuracy, weights, errors, predictions = SVM.main(trainFeatures, trainLabels, valFeatures, valLabels)
         for error in errors:
             totalErrors.append(error)
+        allPredictions.extend(predictions.tolist)
+        allTruths.extend(valLabels)
 
         relevancyMap = relevancy.combineAttentionWeight(weights, valFeatures, valLabels, valAttention, valTokens)
 
@@ -88,6 +92,8 @@ def main():
     classRelevancies = visualize.combineRelevancyMaps(allRelevancyMaps)
 
     relevancy.relevancySubstractions(classRelevancies)
+
+    utils.confusionMatrix(allTruths, allPredictions)
 
     meanAccuracy = np.mean(foldAccuracies)      
     print(f"the mean accuracy is {meanAccuracy * 100}%")
